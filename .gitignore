@@ -1,0 +1,6 @@
+.env 
+agent/.env 
+agent/chroma_db_openai/ 
+chroma_db_openai/ 
+__pycache__/ 
+.next/ 
