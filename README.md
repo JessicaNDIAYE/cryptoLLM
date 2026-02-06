@@ -75,7 +75,7 @@ Exécutez le scripts dans le dossier `data` pour :
 
 #### Étape 2 : Intelligence Artificielle & Prédiction ML — **[À FAIRE ]**
 
-* [ ] **Collecte de données de marché** : Script d'extraction via API Binance/YFinance (Prix OHLCV).
+* [x] ~~**Collecte de données de marché** : Script d'extraction via API Binance/YFinance (Prix OHLCV).~~
 * [ ] **Feature Engineering** : Calcul des indicateurs techniques (RSI, Volatilité, Moyennes Mobiles).
 * [ ] **Entraînement du modèle** : Création du modèle de prédiction de volatilité (RandomForest ou LSTM).
 * [ ] **Export des Artefacts** : Sauvegarde du modèle et des scalers au format `.pkl` ou `.joblib`.
