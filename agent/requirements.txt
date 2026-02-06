@@ -1,4 +1,6 @@
 datasets
+fastapi
+uvicorn
 sentence-transformers
 chromadb
 openai

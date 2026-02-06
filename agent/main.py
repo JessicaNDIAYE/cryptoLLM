@@ -33,4 +33,4 @@ async def ask_knowledge_base(request: QueryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=4000)
+    uvicorn.run(app, host="0.0.0.0", port=4000)

@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  agent-api:
+    build:
+      context: ./agent
+    container_name: investbuddy-agent-api
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./agent:/app
+    restart: unless-stopped
+
+  
+  webapp:
+    build:
+      context: ./webapp
+    container_name: investbuddy-webapp
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
+    depends_on:
+      - agent-api
+    restart: unless-stopped
