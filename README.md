@@ -84,17 +84,19 @@ Exécutez le scripts dans le dossier `data` pour :
 ####  Étape 3 : Orchestration & Agent IA (n8n) — **[À FAIRE ]**
 
 * [ ] **Workflow n8n** : Création du tunnel entre l'API et l'utilisateur.
+* [ ] Lancer docker faire en sorte que tout marche avec docker.
+* [ ] Attendre que Thibault fasse le docker 
 * [ ] **Système de Notification** : Automatisation de l'envoi d'alertes par e-mail en cas de forte volatilité.
 * [ ] **Human-in-the-Loop** : Mise en place des boutons de feedback dans les emails (Validation de la prédiction).
 * [ ] **Stockage Feedback** : Enregistrement des retours utilisateurs dans `prod_data.csv`.
 
 #### Étape 4 : Monitoring & MLOps Industriel — **[À FAIRE ]**
-
+* [ ] Dockerfile pour les utilisateurs mysql .
 * [ ] **Monitoring avec Evidently AI** : Dashboard de détection de Data Drift (comparaison `ref_data` vs `prod_data`).
 * [ ] **Trigger de Réentraînement** : Script surveillant la taille de `prod_data.csv` pour relancer `train_model.py`.
 * [ ] **Conteneurisation Docker** :
-* [ ] Dockerfile pour l'API FastAPI.
-* [ ] Dockerfile pour le Frontend Next.js.
+* [x] ~~Dockerfile pour l'API FastAPI~~.
+* [x] ~~Dockerfile pour le Frontend Next.js.~~
 * [ ] Docker Compose pour orchestrer l'API, la DB, n8n et le monitoring.
 
 ####  Étape 5 : Finalisation & Rapport — **[À FAIRE ]**
