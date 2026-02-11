@@ -1,6 +1,21 @@
 version: "3.9"
 
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: investbuddy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: investbuddy
+      MYSQL_USER: investuser
+      MYSQL_PASSWORD: investpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./bd/init.sql:/docker-entrypoint-initdb.d/init.sql
+
   agent-api:
     build:
       context: ./agent
@@ -9,9 +24,15 @@ services:
       - "4000:4000"
     volumes:
       - ./agent:/app
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_USER: investuser
+      DB_PASSWORD: investpassword
+      DB_NAME: investbuddy
     restart: unless-stopped
 
-  
   webapp:
     build:
       context: ./webapp
@@ -24,3 +45,6 @@ services:
     depends_on:
       - agent-api
     restart: unless-stopped
+
+volumes:
+  mysql_data:
