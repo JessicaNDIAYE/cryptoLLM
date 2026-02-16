@@ -1,14 +1,16 @@
 from fastapi import FastAPI
 import joblib
 from pydantic import BaseModel
+import uvicorn
 
-app =  FastAPI('crypto prediction API')
+app =  FastAPI(title='crypto prediction API')
 
-model_vol = joblib.load('../artifacts/model_volatility.pickle')
-model_dir = joblib.load('../artifacts/model_direction.pickle')
-scaler = joblib.load('../artifacts/scaler.pickle')
+model_vol = joblib.load('./artifacts/model_volatility.pickle')
+model_dir = joblib.load('./artifacts/model_direction.pickle')
+scaler = joblib.load('./artifacts/scaler.pickle')
 
 class CurrencyData(BaseModel):
+    currency: str
     Open: float
     High: float
     Low: float
@@ -31,7 +33,19 @@ async def predict(data: CurrencyData):
     dir_pred = model_dir.predict(input_scaled)[0]
     
     return {
-        'volatility': float(vol_pred),
-        'direction': "up" if dir_pred == 1 else "down",
+        "currency": "BTC",
+        "prediction":{
+            'volatility': float(vol_pred),
+            'direction': "up" if dir_pred == 1 else "down",
+        },
+        "context": {
+            "rsi": data.RSI,
+            "atr": data.ATR,
+            "sma_20": data.SMA_20,
+            "ema_50": data.EMA_50
+        },
         'message': f"Prediction : marché en {dir_pred} avec une volatilité de {vol_pred:.4f}"
     }
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8080)
