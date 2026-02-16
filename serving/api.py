@@ -1,13 +1,28 @@
 from fastapi import FastAPI
 import joblib
 from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import os
 
 app =  FastAPI(title='crypto prediction API')
 
-model_vol = joblib.load('./artifacts/model_volatility.pickle')
-model_dir = joblib.load('./artifacts/model_direction.pickle')
-scaler = joblib.load('./artifacts/scaler.pickle')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+model_vol_path = os.path.join(BASE_DIR, 'artifacts', 'model_volatility.pickle')
+model_dir_path = os.path.join(BASE_DIR, 'artifacts', 'model_direction.pickle')
+scaler_path = os.path.join(BASE_DIR, 'artifacts', 'scaler.pickle')
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"], # Autorise votre frontend
+    allow_credentials=True,
+    allow_methods=["*"], # Autorise tous les verbes (POST, etc.)
+    allow_headers=["*"], # Autorise tous les headers
+)
+
+model_vol = joblib.load(model_vol_path)
+model_dir = joblib.load(model_dir_path)
+scaler = joblib.load(scaler_path)
 
 class CurrencyData(BaseModel):
     currency: str

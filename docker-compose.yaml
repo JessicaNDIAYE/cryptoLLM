@@ -4,14 +4,19 @@ services:
   agent-api:
     build:
       context: ./agent
+      dockerfile: Dockerfile
     container_name: investbuddy-agent-api
     ports:
       - "4000:4000"
     volumes:
       - ./agent:/app
     restart: unless-stopped
-
-  
+  prediction-api:
+    build:
+      context: ./serving
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
   webapp:
     build:
       context: ./webapp
@@ -23,4 +28,5 @@ services:
       - /app/node_modules
     depends_on:
       - agent-api
+      - prediction-api
     restart: unless-stopped
