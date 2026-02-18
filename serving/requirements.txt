@@ -1,0 +1,11 @@
+datasets
+fastapi
+uvicorn
+sentence-transformers
+chromadb
+openai
+python-dotenv
+langchain-openai
+faiss-cpu
+pydantic
+langchain_community
