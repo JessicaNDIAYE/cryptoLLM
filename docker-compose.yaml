@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: investbuddy-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: investbuddy
+      MYSQL_USER: investuser
+      MYSQL_PASSWORD: investpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./bd/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  agent-api:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: investbuddy-agent-api
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./agent:/app
+    depends_on:
+      - mysql
+    environment:
+      DB_HOST: mysql
+      DB_USER: investuser
+      DB_PASSWORD: investpassword
+      DB_NAME: investbuddy
+    restart: unless-stopped
+  prediction-api:
+    build:
+      context: ./serving
+      dockerfile: Dockerfile
+    volumes:
+      - ./serving:/app
+      - ./data:/app/data
+    ports:
+      - "8080:8080"
+  webapp:
+    build:
+      context: ./webapp
+    container_name: investbuddy-webapp
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
+    depends_on:
+      - agent-api
+      - prediction-api
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
