@@ -37,6 +37,9 @@ services:
     build:
       context: ./serving
       dockerfile: Dockerfile
+    volumes:
+      - ./serving:/app
+      - ./data:/app/data
     ports:
       - "8080:8080"
   webapp:

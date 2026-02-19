@@ -9,6 +9,7 @@ import { RiskCard } from "@/app/components/RiskCard";
 import { ArrowRight } from "lucide-react";
 
 export function DashboardPage() {
+  const [selectedCurrency, setSelectedCurrency] = useState("BTCUSDT");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{volatility: number, direction: string, analysis: string} | null>(null);
 
@@ -16,22 +17,14 @@ export function DashboardPage() {
     setLoading(true);
     try {
       // API de Prédiction (Port 8000)
-      const predRes = await fetch('http://localhost:8080/predictBTC', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          currency: "BTC", 
-          Open: 42000, 
-          High: 43000, 
-          Low: 41500, 
-          Close: 42500,
-          Volume: 1000, 
-          RSI: 55, 
-          ATR: 0.02, 
-          VolumeChange: 0.1, 
-          SMA_20: 42000, 
-          EMA_50: 41000
-        })
+      const predRes = await fetch('http://localhost:8080/predict', { 
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                currency: selectedCurrency,
+                Open: 42000, High: 43000, Low: 41500, Close: 42500,
+                Volume: 1000, RSI: 55, ATR: 0.02, VolumeChange: 0.1, SMA_20: 42000, EMA_50: 41000
+            })
       });
       const predData = await predRes.json();
 
@@ -75,14 +68,19 @@ export function DashboardPage() {
                 Plateforme pilotée par l'IA pour vos investissements cryptos.
             </p>
             
-            <div className="flex gap-4">
-                <Button 
-                    onClick={runAnalysis} 
-                    disabled={loading} 
-                    className="h-12 px-8 rounded-full bg-[#1F1F2E] hover:bg-black text-white"
-                >
-                    {loading ? "Analyse en cours..." : "Lancer l'analyse de risque"}
-                </Button>
+            <div className="flex gap-4 items-center">
+               <select 
+                     value={selectedCurrency} 
+                     onChange={(e) => setSelectedCurrency(e.target.value)}
+                     className="bg-white border rounded-full px-4 py-2 text-sm"
+               >
+                     <option value="BTCUSDT">Bitcoin (BTC)</option>
+                     <option value="ETHUSDT">Ethereum (ETH)</option>
+               </select>
+               
+               <Button onClick={runAnalysis} disabled={loading}>
+                     {loading ? "Analyse..." : "Lancer l'analyse"}
+               </Button>
             </div>
           </div>
       </section>
