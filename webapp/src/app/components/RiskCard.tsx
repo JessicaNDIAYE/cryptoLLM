@@ -9,7 +9,8 @@ interface RiskCardProps {
   aiAnalysis?: string; // Le texte de ton agent RAG
 }
 
-export function RiskCard({currency = "BTC" ,volatility = 0, direction = "up", aiAnalysis }: RiskCardProps) {
+export function RiskCard({currency = "BTCUSDT" ,volatility = 0, direction = "up", aiAnalysis }: RiskCardProps) {
+  const displayCurrency = currency.replace("USDT", "");
   // Normaliser la volatilité pour l'affichage (0 à 0.05 correspond à 0% à 100%)
   const normalizedScore = Math.min(volatility / 0.05, 1);
 
@@ -17,17 +18,25 @@ export function RiskCard({currency = "BTC" ,volatility = 0, direction = "up", ai
     <Card className="w-full bg-card/50 backdrop-blur-sm border-border/40 overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-purple-500/5 pointer-events-none" />
       <CardHeader>
-        <CardTitle>Analyse de Risque en Direct du {currency}</CardTitle>
-        <CardDescription>Basé sur le modèle ML et les news récentes</CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Analyse de Risque : {displayCurrency}</CardTitle>
+            <CardDescription>Modèles Prédictifs & agent conseillé</CardDescription>
+          </div>
+          {/* Badge de la monnaie active */}
+          <div className="bg-primary/10 text-primary text-xs font-mono px-2 py-1 rounded border border-primary/20">
+            {currency}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center pt-2 pb-8">
          <div className="relative w-64 h-32">
             <svg viewBox="0 0 100 50" className="w-full h-full overflow-visible">
               <defs>
                 <linearGradient id="riskGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                   <stop offset="0%" stopColor="#22c55e" /> {/* Vert (Faible) */}
-                   <stop offset="50%" stopColor="#eab308" /> {/* Jaune (Moyen) */}
-                   <stop offset="100%" stopColor="#ef4444" /> {/* Rouge (Haut) */}
+                   <stop offset="0%" stopColor="#22c55e" /> 
+                   <stop offset="50%" stopColor="#eab308" />
+                   <stop offset="100%" stopColor="#ef4444" /> 
                 </linearGradient>
               </defs>
               <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/20" strokeLinecap="round" />
@@ -49,10 +58,17 @@ export function RiskCard({currency = "BTC" ,volatility = 0, direction = "up", ai
          </div>
          
          <div className="mt-8 text-center space-y-4">
-            <div className="flex gap-2 justify-center">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${direction === 'up' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                    Tendance : {direction === 'up' ? 'HAUSSIÈRE' : 'BAISSIÈRE'}
+            <div className="flex gap-4 justify-center">
+            {/* Indicateur de Direction */}
+              <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm ${
+                direction === 'up' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+              }`}>
+                <span className="relative flex h-2 w-2">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${direction === 'up' ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                  <span className={`relative inline-flex rounded-full h-2 w-2 ${direction === 'up' ? 'bg-green-500' : 'bg-red-500'}`}></span>
                 </span>
+                Tendance : {direction === 'up' ? 'HAUSSIÈRE' : 'BAISSIÈRE'}
+              </div>
             </div>
             
             {/* Affichage de l'analyse de l'agent RAG */}

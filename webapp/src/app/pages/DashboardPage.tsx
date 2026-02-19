@@ -9,29 +9,31 @@ import { RiskCard } from "@/app/components/RiskCard";
 import { ArrowRight } from "lucide-react";
 
 export function DashboardPage() {
+  const [selectedCurrency, setSelectedCurrency] = useState("BTCUSDT");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{volatility: number, direction: string, analysis: string} | null>(null);
+
+  const availableCurrencies = [
+    { value: "BTCUSDT", label: "Bitcoin (BTC)" },
+    { value: "ETHUSDT", label: "Ethereum (ETH)" },
+   //  { value: "SOLUSDT", label: "Solana (SOL)" },
+   //  { value: "XRPUSDT", label: "Ripple (XRP)" },
+   //  { value: "ADAUSDT", label: "Cardano (ADA)" },
+   //  { value: "AVAXUSDT", label: "Avalanche (AVAX)" },
+  ];
 
   const runAnalysis = async () => {
     setLoading(true);
     try {
       // API de Prédiction (Port 8000)
-      const predRes = await fetch('http://localhost:8080/predictBTC', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          currency: "BTC", 
-          Open: 42000, 
-          High: 43000, 
-          Low: 41500, 
-          Close: 42500,
-          Volume: 1000, 
-          RSI: 55, 
-          ATR: 0.02, 
-          VolumeChange: 0.1, 
-          SMA_20: 42000, 
-          EMA_50: 41000
-        })
+      const predRes = await fetch('http://localhost:8080/predict', { 
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                currency: selectedCurrency,
+                Open: 42000, High: 43000, Low: 41500, Close: 42500,
+                Volume: 1000, RSI: 55, ATR: 0.02, VolumeChange: 0.1, SMA_20: 42000, EMA_50: 41000
+            })
       });
       const predData = await predRes.json();
 
@@ -60,29 +62,66 @@ export function DashboardPage() {
   };
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-10">
-      <section className="relative w-full rounded-[2.5rem] overflow-hidden bg-[#EAE4F2] min-h-[400px] flex items-center">
-          <div className="absolute inset-0 z-0">
-             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-[#E8E2F7] via-[#F2EEFA] to-[#E3DDF2] opacity-80" />
-          </div>
+      <section className="relative w-full rounded-[3rem] overflow-hidden bg-gradient-to-br from-[#F0EBFA] to-[#FFFFFF] min-h-[450px] flex items-center shadow-xl border border-white/50">
+          <div className="relative z-10 px-10 md:px-20 w-full flex flex-col md:flex-row justify-between items-center gap-10">
+            <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+                    <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                    </span>
+                    IA Analyse en temps réel
+                </div>
+                
+                <h1 className="text-5xl md:text-7xl font-extrabold text-[#1F1F2E] mb-6 tracking-tight leading-tight">
+                    Smart Crypto <br/>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-500">Insights</span>
+                </h1>
+                
+                <p className="text-xl text-gray-500 mb-10 max-w-md">
+                    Anticipez les mouvements de marché grâce à nos modèles de Deep Learning et l'analyse de sentiment.
+                </p>
+                
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div className="relative">
+                        <select 
+                            value={selectedCurrency} 
+                            onChange={(e) => setSelectedCurrency(e.target.value)}
+                            className="appearance-none bg-white border-2 border-purple-100 hover:border-purple-300 rounded-2xl px-6 py-4 pr-12 text-sm font-bold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                        >
+                            {availableCurrencies.map(c => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                            <ArrowRight size={16} className="rotate-90" />
+                        </div>
+                    </div>
+                    
+                    <Button 
+                        onClick={runAnalysis} 
+                        disabled={loading}
+                        className="bg-[#1F1F2E] hover:bg-black text-white rounded-2xl px-8 py-7 text-md font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-purple-200"
+                    >
+                        {loading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Analyse...
+                            </div>
+                        ) : "Lancer l'Analyse Prédictive"}
+                    </Button>
+                </div>
+            </div>
 
-          <div className="relative z-10 px-10 md:px-16 max-w-2xl">
-            <h1 className="text-5xl md:text-6xl font-bold text-[#1F1F2E] mb-6 leading-[1.1]">
-                Where Money <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-blue-600">Grows</span>
-            </h1>
-            
-            <p className="text-lg text-gray-600 mb-8">
-                Plateforme pilotée par l'IA pour vos investissements cryptos.
-            </p>
-            
-            <div className="flex gap-4">
-                <Button 
-                    onClick={runAnalysis} 
-                    disabled={loading} 
-                    className="h-12 px-8 rounded-full bg-[#1F1F2E] hover:bg-black text-white"
-                >
-                    {loading ? "Analyse en cours..." : "Lancer l'analyse de risque"}
-                </Button>
+            {/* Preview visuelle facultative à droite */}
+            <div className="hidden lg:block w-full max-w-sm">
+                <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 border border-white/60 shadow-inner rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <div className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">Dernière Prédiction</div>
+                    <div className="text-3xl font-black text-[#1F1F2E] mb-2">{selectedCurrency.replace('USDT','')}</div>
+                    <div className="text-green-500 font-bold flex items-center gap-1">
+                        <ArrowRight size={16} className="-rotate-45" /> +2.4% attendu
+                    </div>
+                </div>
             </div>
           </div>
       </section>
@@ -92,24 +131,43 @@ export function DashboardPage() {
         <QuickStartGuides />
       </section>
 
+      
       {/* Main Grid - Middle Section */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12 gap-8 h-auto xl:h-[380px]">
-         <div className="md:col-span-4">
+      <section className="w-full">
+         <RiskCard 
+            currency={selectedCurrency}
+            volatility={results?.volatility} 
+            direction={results?.direction}
+            aiAnalysis={results?.analysis}
+         />
+      </section>
+      <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-8 items-start">
+  
+         {/* Colonne Gauche : RiskCard (Prend plus de place car le texte RAG est long) */}
+         {/* <div className="md:col-span-3 xl:col-span-4 h-full">
             <RiskCard 
-              volatility={results?.volatility} 
-              direction={results?.direction}
-              aiAnalysis={results?.analysis}
+               currency={selectedCurrency}
+               volatility={results?.volatility} 
+               direction={results?.direction}
+               aiAnalysis={results?.analysis}
             />
+         </div> */}
+
+         {/* Colonne Milieu : Learning & Sentiment */}
+         <div className="md:col-span-3 xl:col-span-4 flex flex-col gap-8 h-full">
+            <div className="flex-1">
+               <LearningProgress />
+            </div>
+            <div className="flex-1">
+               <MarketSentiment />
+            </div>
          </div>
-         <div className="">
-            <LearningProgress />
-         </div>
-         <div className="xl:col-span-4 h-full">
-            <MarketSentiment />
-         </div>
-         <div className="xl:col-span-5 h-full">
+
+         {/* Colonne Droite : TopETFs */}
+         <div className="md:col-span-6 xl:col-span-4 h-full">
             <TopETFs />
          </div>
+
       </section>
 
       {/* Bottom Grid - Analysis */}
