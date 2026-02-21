@@ -42,13 +42,13 @@ export function DashboardPage() {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-          prediction_data: predData.prediction, // Envoi de volatility et direction
-          user_query: "Pourquoi le bitcoin à un pourcentage de volatilité de " + (predData.prediction.volatility * 100).toFixed(2) + "% et une tendance " + predData.prediction.direction + " ?"
+            currency: predData.currency, 
+            prediction: predData.prediction,
+            user_query: "Pourquoi le bitcoin à un pourcentage de volatilité de " + (predData.prediction.volatility * 100).toFixed(2) + "% et une tendance " + predData.prediction.direction + " ?"
         })
       });
       const agentData = await agentRes.json();
 
-      // Mise à jour de l'interface avec les données reçues
       setResults({
         volatility: predData.prediction.volatility,
         direction: predData.prediction.direction,
@@ -133,6 +133,7 @@ export function DashboardPage() {
 
       
       {/* Main Grid - Middle Section */}
+      {/* Colonne Gauche : RiskCard (Prend plus de place car le texte RAG est long) */}
       <section className="w-full">
          <RiskCard 
             currency={selectedCurrency}
@@ -143,15 +144,6 @@ export function DashboardPage() {
       </section>
       <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-8 items-start">
   
-         {/* Colonne Gauche : RiskCard (Prend plus de place car le texte RAG est long) */}
-         {/* <div className="md:col-span-3 xl:col-span-4 h-full">
-            <RiskCard 
-               currency={selectedCurrency}
-               volatility={results?.volatility} 
-               direction={results?.direction}
-               aiAnalysis={results?.analysis}
-            />
-         </div> */}
 
          {/* Colonne Milieu : Learning & Sentiment */}
          <div className="md:col-span-3 xl:col-span-4 flex flex-col gap-8 h-full">

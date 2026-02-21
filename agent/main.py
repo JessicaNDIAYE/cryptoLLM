@@ -17,10 +17,13 @@ app.add_middleware(
 )
 # -----------------------------------
 
-
+class PredictionDetails(BaseModel):
+    volatility: float
+    direction: str
 class RiskAnalysisRequest(BaseModel):
-    prediction_data: dict  # Reçoit {'volatility': 0.05, 'direction': 'up'}
-    user_query: str        # Reçoit "Analyse le risque pour le BTC"
+    currency: str
+    prediction: PredictionDetails  # Reçoit {'volatility': 0.05, 'direction': 'up'}
+    user_query: str | None = None      # Reçoit "Analyse le risque pour le BTC"
 
 class QueryRequest(BaseModel):
     question: str
@@ -42,13 +45,18 @@ async def ask_knowledge_base(request: QueryRequest):
 @app.post("/analyzeRisk")
 async def analyze_risk(request: RiskAnalysisRequest): # Utilise un modèle Pydantic pour valider
     try:
-        # 1. Récupérer les news liées à la crypto via ton index FAISS/Chroma
-        docs = retriever.invoke(request.user_query)
-        context = "\n\n".join([doc.page_content for doc in docs])
-
         # 2. Extraire les prédictions reçues de l'autre API
-        vol = request.prediction_data.get('volatility', 'N/A')
-        direc = request.prediction_data.get('direction', 'N/A')
+
+        vol = request.prediction.volatility
+        direc = request.prediction.direction
+        currency = request.currency.upper()  
+
+        clean_currency = currency.replace("USDT", "")
+
+        search_query = f"Actualités majeures et événements financiers pour {clean_currency} en 2025"
+
+        docs = retriever.invoke(search_query)
+        context = "\n\n".join([doc.page_content for doc in docs])
 
         # 3. Construire le prompt pour l'analyse finale
         prompt = f"""
@@ -60,7 +68,12 @@ async def analyze_risk(request: RiskAnalysisRequest): # Utilise un modèle Pydan
         """
         
         response = llm.invoke(prompt)
-        return {"analysis": response.content}
+        return {
+            "currency": currency,
+            "volatility": vol,
+            "direction": direc,
+            "analysis": response.content
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
