@@ -1,0 +1,142 @@
+{
+  "name": "InvestBuddy - Alert & Human-in-the-Loop",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "investbuddy-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "investbuddy-alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.body.prediction.volatility }}",
+              "operation": "larger",
+              "value2": 0.02
+            }
+          ]
+        }
+      },
+      "id": "check-volatility",
+      "name": "Volatilité élevée ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "model": "gpt-3.5-turbo",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Tu es InvestBuddy, un assistant financier expert en cryptomonnaies. Rédige des messages d'alerte clairs, concis et professionnels en français."
+            },
+            {
+              "role": "user",
+              "content": "=Rédige un court message d'alerte (3-4 phrases max) pour informer {{ $json.body.user_name }} d'une forte volatilité détectée sur {{ $json.body.currency }}. Volatilité: {{ $json.body.prediction.volatility }}, Direction prédite: {{ $json.body.prediction.direction }}. Le message doit être rassurant mais incitatif à valider la prédiction."
+            }
+          ]
+        }
+      },
+      "id": "generate-message",
+      "name": "Générer message LLM",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [680, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-creds",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Webhook Trigger').item.json.body.user_email }}",
+        "subject": "=🚨 InvestBuddy - Alerte Volatilité {{ $('Webhook Trigger').item.json.body.currency }}",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<style>\n  body { font-family: Arial, sans-serif; background: #f0f4ff; margin: 0; padding: 20px; }\n  .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }\n  .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }\n  .header h1 { margin: 0; font-size: 1.8em; }\n  .content { padding: 30px; }\n  .alert-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0; }\n  .stats { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }\n  .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }\n  .feedback-section { text-align: center; margin: 30px 0; }\n  .feedback-section h3 { color: #333; margin-bottom: 20px; }\n  .btn-confirm { display: inline-block; padding: 14px 30px; background: #4CAF50; color: white !important; text-decoration: none; border-radius: 8px; margin: 8px; font-weight: bold; font-size: 1em; }\n  .btn-deny { display: inline-block; padding: 14px 30px; background: #f44336; color: white !important; text-decoration: none; border-radius: 8px; margin: 8px; font-weight: bold; font-size: 1em; }\n  .footer { text-align: center; padding: 20px; color: #888; font-size: 0.85em; background: #f8f9fa; }\n</style>\n</head>\n<body>\n<div class=\"container\">\n  <div class=\"header\">\n    <h1>📈 InvestBuddy</h1>\n    <p>Alerte de volatilité détectée</p>\n  </div>\n  <div class=\"content\">\n    <p>Bonjour <strong>{{ $('Webhook Trigger').item.json.body.user_name }}</strong>,</p>\n    <div class=\"alert-box\">\n      <strong>⚠️ Alerte détectée sur {{ $('Webhook Trigger').item.json.body.currency }}</strong>\n    </div>\n    <p>{{ $json.message.content }}</p>\n    <div class=\"stats\">\n      <h3>📊 Résumé de la prédiction</h3>\n      <div class=\"stat-row\"><span>Crypto</span><strong>{{ $('Webhook Trigger').item.json.body.currency }}</strong></div>\n      <div class=\"stat-row\"><span>Direction prédite</span><strong>{{ $('Webhook Trigger').item.json.body.prediction.direction }}</strong></div>\n      <div class=\"stat-row\"><span>Volatilité</span><strong>{{ $('Webhook Trigger').item.json.body.prediction.volatility }}</strong></div>\n    </div>\n    <div class=\"feedback-section\">\n      <h3>🤔 La prédiction vous semble-t-elle correcte ?</h3>\n      <p>Votre retour nous aide à améliorer notre modèle d'IA.</p>\n      <a href=\"{{ $('Webhook Trigger').item.json.body.feedback_confirm_url }}\" class=\"btn-confirm\">✅ Oui, je confirme</a>\n      <a href=\"{{ $('Webhook Trigger').item.json.body.feedback_deny_url }}\" class=\"btn-deny\">❌ Non, je corrige</a>\n    </div>\n  </div>\n  <div class=\"footer\">\n    <p>Cet email a été envoyé automatiquement par InvestBuddy.</p>\n    <p>© 2025 InvestBuddy - Votre assistant financier IA</p>\n  </div>\n</div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Envoyer Email Alerte",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [900, 200],
+      "credentials": {
+        "smtp": {
+          "id": "smtp-creds",
+          "name": "SMTP InvestBuddy"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"skipped\", \"reason\": \"Volatility below threshold\", \"volatility\": {{ $json.body.prediction.volatility }}}",
+        "options": {}
+      },
+      "id": "skip-low-volatility",
+      "name": "Ignorer (volatilité faible)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"email_sent\", \"recipient\": \"{{ $('Webhook Trigger').item.json.body.user_email }}\", \"currency\": \"{{ $('Webhook Trigger').item.json.body.currency }}\"}",
+        "options": {}
+      },
+      "id": "respond-success",
+      "name": "Répondre succès",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1100, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [{ "node": "Volatilité élevée ?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Volatilité élevée ?": {
+      "main": [
+        [{ "node": "Générer message LLM", "type": "main", "index": 0 }],
+        [{ "node": "Ignorer (volatilité faible)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Générer message LLM": {
+      "main": [
+        [{ "node": "Envoyer Email Alerte", "type": "main", "index": 0 }]
+      ]
+    },
+    "Envoyer Email Alerte": {
+      "main": [
+        [{ "node": "Répondre succès", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": ["investbuddy", "mlops", "crypto"],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

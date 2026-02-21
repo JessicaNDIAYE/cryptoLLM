@@ -1,0 +1,2 @@
+Open,High,Low,Close,Volume,RSI,ATR,VolumeChange,SMA_20,EMA_50,target_vol,target_dir,currency
+95000.0,96500.0,94200.0,95800.0,25000.0,58.3,1200.5,0.05,94500.0,93800.0,0.004,1,BTCUSDT
