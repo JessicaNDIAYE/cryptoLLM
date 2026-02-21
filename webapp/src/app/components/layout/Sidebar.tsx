@@ -1,7 +1,6 @@
 import {
   LayoutDashboard,
   BookOpen,
-  TrendingUp,
   ShieldAlert,
   Bot,
   Settings,
@@ -21,7 +20,6 @@ export function Sidebar({ activePage, onNavigate, isOpen, setIsOpen }: SidebarPr
   const menuItems = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "glossary", label: "Glossaire", icon: BookOpen },
-    { id: "trading", label: "Marchés", icon: TrendingUp },
     { id: "risks", label: "Analyses de Risque", icon: ShieldAlert },
     { id: "learning", label: "Ask AI", icon: Bot },
     { id: "settings", label: "Paramètres", icon: Settings },

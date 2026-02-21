@@ -30,8 +30,6 @@ export function Topbar({ onMenuClick }: TopbarProps) {
         
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-500">
              <span className="text-[#1F1F2E] cursor-pointer">Tableau de bord</span>
-             <span className="hover:text-[#1F1F2E] cursor-pointer transition-colors">Portefeuille</span>
-             <span className="hover:text-[#1F1F2E] cursor-pointer transition-colors">Actifs</span>
         </div>
       </div>
 
