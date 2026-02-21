@@ -28,6 +28,7 @@ services:
   agent-api:
     build:
       context: ./agent
+      dockerfile: Dockerfile
     container_name: investbuddy-agent-api
     ports:
       - "4000:4000"
