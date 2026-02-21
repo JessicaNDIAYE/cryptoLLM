@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
+from urllib.parse import urlencode
 
 app = FastAPI(title='crypto prediction API')
 
@@ -24,7 +25,7 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROD_DATA_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'data', 'prod_data.csv'))
 RETRAIN_THRESHOLD = int(os.getenv('RETRAIN_THRESHOLD', '10'))
-N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', 'http://n8n:5678/webhook/investbuddy-alert')
+N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', 'http://localhost:5678/webhook/investbuddy-alert')
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
 
 # --- Variables globales : modèles chargés au démarrage ---
@@ -109,20 +110,45 @@ async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks)
     un email avec des liens de validation (Human-in-the-Loop).
     """
     try:
-        inp = request.input_data
+        inp = request.input_data or {}
         vol = request.prediction.get('volatility', 0)
         direc = request.prediction.get('direction', 'unknown')
         currency = request.currency
 
-        params = "&".join([f"{k}={v}" for k, v in inp.items()])
-        feedback_confirm = (
-            f"{API_BASE_URL}/feedback?currency={currency}&label=confirm"
-            f"&prediction_vol={vol}&prediction_dir={direc}&{params}"
-        )
-        feedback_deny = (
-            f"{API_BASE_URL}/feedback?currency={currency}&label=deny"
-            f"&prediction_vol={vol}&prediction_dir={direc}&{params}"
-        )
+        print(f"📤 /notify called with:")
+        print(f"   currency: {currency}")
+        print(f"   prediction: {request.prediction}")
+        print(f"   input_data: {inp}")
+
+        # Construction des paramètres avec encodage URL correct
+        # Valeurs par défaut si input_data est incomplet
+        default_input = {
+            'Open': 42000, 'High': 43000, 'Low': 41500, 'Close': 42500,
+            'Volume': 1000, 'RSI': 55, 'ATR': 0.02, 'VolumeChange': 0.1, 
+            'SMA_20': 42000, 'EMA_50': 41000
+        }
+        
+        # Fusion avec les valeurs fournies
+        for key in default_input:
+            if key not in inp or inp[key] is None:
+                inp[key] = default_input[key]
+        
+        # Paramètres de base
+        base_params = {
+            "currency": currency,
+            "prediction_vol": vol,
+            "prediction_dir": direc,
+        }
+        
+        # Construire les URLs de feedback
+        confirm_params = urlencode({**base_params, **inp, "label": "confirm"})
+        deny_params = urlencode({**base_params, **inp, "label": "deny"})
+        
+        feedback_confirm = f"{API_BASE_URL}/feedback?{confirm_params}"
+        feedback_deny = f"{API_BASE_URL}/feedback?{deny_params}"
+
+        print(f"   feedback_confirm_url: {feedback_confirm}")
+        print(f"   feedback_deny_url: {feedback_deny}")
 
         n8n_payload = {
             "currency": currency,
@@ -134,8 +160,9 @@ async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks)
         }
 
         background_tasks.add_task(call_n8n_webhook, n8n_payload)
-        return {"status": "notification_scheduled", "recipient": request.user_email}
+        return {"status": "notification_scheduled", "recipient": request.user_email, "urls_generated": True}
     except Exception as e:
+        print(f"❌ Error in /notify: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
