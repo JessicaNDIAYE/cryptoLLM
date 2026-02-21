@@ -1,4 +1,3 @@
-import { QuickStartGuides } from "@/app/components/dashboard/QuickStartGuides";
 import { LearningProgress } from "@/app/components/dashboard/LearningProgress";
 import { MarketSentiment } from "@/app/components/dashboard/MarketSentiment";
 import { TopETFs } from "@/app/components/dashboard/TopETFs";
@@ -6,9 +5,13 @@ import { ETFAnalysis } from "@/app/components/dashboard/ETFAnalysis";
 import { Button } from "@/app/components/ui/button";
 import React, { useState } from "react";
 import { RiskCard } from "@/app/components/RiskCard";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, GraduationCap } from "lucide-react";
 
-export function DashboardPage() {
+interface DashboardPageProps {
+  onLearnMoreClick: () => void;
+}
+
+export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
   const [selectedCurrency, setSelectedCurrency] = useState("BTCUSDT");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{volatility: number, direction: string, analysis: string} | null>(null);
@@ -16,10 +19,6 @@ export function DashboardPage() {
   const availableCurrencies = [
     { value: "BTCUSDT", label: "Bitcoin (BTC)" },
     { value: "ETHUSDT", label: "Ethereum (ETH)" },
-   //  { value: "SOLUSDT", label: "Solana (SOL)" },
-   //  { value: "XRPUSDT", label: "Ripple (XRP)" },
-   //  { value: "ADAUSDT", label: "Cardano (ADA)" },
-   //  { value: "AVAXUSDT", label: "Avalanche (AVAX)" },
   ];
 
   const runAnalysis = async () => {
@@ -37,18 +36,37 @@ export function DashboardPage() {
       });
       const predData = await predRes.json();
 
+      // Notification automatique si forte volatilité (> 0.01)
+      if (predData.prediction.volatility > 0.01) {
+        try {
+          await fetch('http://localhost:8080/notify', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              currency: selectedCurrency,
+              prediction: predData.prediction,
+              input_data: predData.input_data,
+              user_email: "user@investbuddy.com",
+              user_name: "Investisseur"
+            })
+          });
+          console.log("📧 Notification envoyée (volatilité élevée)");
+        } catch (notifyError) {
+          console.error("Erreur notification:", notifyError);
+        }
+      }
+
       // API Agent/RAG (Port 4000)
       const agentRes = await fetch('http://localhost:4000/analyzeRisk', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({
-          prediction_data: predData.prediction, // Envoi de volatility et direction
+          prediction_data: predData.prediction,
           user_query: "Pourquoi le bitcoin à un pourcentage de volatilité de " + (predData.prediction.volatility * 100).toFixed(2) + "% et une tendance " + predData.prediction.direction + " ?"
         })
       });
       const agentData = await agentRes.json();
 
-      // Mise à jour de l'interface avec les données reçues
       setResults({
         volatility: predData.prediction.volatility,
         direction: predData.prediction.direction,
@@ -60,8 +78,10 @@ export function DashboardPage() {
       setLoading(false);
     }
   };
+
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-10">
+      {/* Hero Section */}
       <section className="relative w-full rounded-[3rem] overflow-hidden bg-gradient-to-br from-[#F0EBFA] to-[#FFFFFF] min-h-[450px] flex items-center shadow-xl border border-white/50">
           <div className="relative z-10 px-10 md:px-20 w-full flex flex-col md:flex-row justify-between items-center gap-10">
             <div className="max-w-2xl">
@@ -113,7 +133,6 @@ export function DashboardPage() {
                 </div>
             </div>
 
-            {/* Preview visuelle facultative à droite */}
             <div className="hidden lg:block w-full max-w-sm">
                 <div className="bg-white/40 backdrop-blur-md rounded-[2rem] p-8 border border-white/60 shadow-inner rotate-3 hover:rotate-0 transition-transform duration-500">
                     <div className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-widest">Dernière Prédiction</div>
@@ -126,13 +145,30 @@ export function DashboardPage() {
           </div>
       </section>
 
-      {/* Quick Start Guides Section */}
-      <section>
-        <QuickStartGuides />
+      {/* Learn More Section */}
+      <section className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="font-bold text-[#1F1F2E]">📚 Envie d'apprendre ?</h3>
+              <p className="text-sm text-gray-600">Explorez notre glossaire crypto interactif avec l'IA</p>
+            </div>
+          </div>
+          <Button 
+            onClick={onLearnMoreClick}
+            variant="outline"
+            className="bg-white hover:bg-purple-50 text-purple-600 border-purple-200 rounded-xl px-6"
+          >
+            En apprendre plus sur la crypto
+            <ArrowRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
       </section>
 
-      
-      {/* Main Grid - Middle Section */}
+      {/* Risk Card Section */}
       <section className="w-full">
          <RiskCard 
             currency={selectedCurrency}
@@ -141,19 +177,9 @@ export function DashboardPage() {
             aiAnalysis={results?.analysis}
          />
       </section>
-      <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-8 items-start">
-  
-         {/* Colonne Gauche : RiskCard (Prend plus de place car le texte RAG est long) */}
-         {/* <div className="md:col-span-3 xl:col-span-4 h-full">
-            <RiskCard 
-               currency={selectedCurrency}
-               volatility={results?.volatility} 
-               direction={results?.direction}
-               aiAnalysis={results?.analysis}
-            />
-         </div> */}
 
-         {/* Colonne Milieu : Learning & Sentiment */}
+      {/* Middle Section Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-8 items-start">
          <div className="md:col-span-3 xl:col-span-4 flex flex-col gap-8 h-full">
             <div className="flex-1">
                <LearningProgress />
@@ -163,11 +189,9 @@ export function DashboardPage() {
             </div>
          </div>
 
-         {/* Colonne Droite : TopETFs */}
          <div className="md:col-span-6 xl:col-span-4 h-full">
             <TopETFs />
          </div>
-
       </section>
 
       {/* Bottom Grid - Analysis */}

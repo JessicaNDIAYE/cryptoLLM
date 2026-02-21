@@ -3,18 +3,19 @@ import { Sidebar } from "@/app/components/layout/Sidebar";
 import { Topbar } from "@/app/components/layout/Topbar";
 import { DashboardPage } from "@/app/pages/DashboardPage";
 import { AskAIPage } from "@/app/pages/AskAIPage";
+import { CryptoLessons } from "@/app/components/dashboard/CryptoLessons";
 import { Toaster } from "sonner";
 
-function PlaceholderPage({ title }: { title: string }) {
+function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, question: string) => void }) {
   return (
-    <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4 animate-in fade-in zoom-in duration-300">
-       <div className="w-20 h-20 rounded-full bg-white shadow-xl shadow-purple-100 flex items-center justify-center mb-4">
-          <span className="text-4xl">🌱</span>
-       </div>
-       <h2 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">{title}</h2>
-       <p className="text-gray-500 max-w-md text-lg">
-         Cette section est en train de fleurir. Revenez bientôt pour voir vos investissements grandir.
-       </p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="text-center space-y-4">
+        <h1 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">📚 Glossaire Crypto</h1>
+        <p className="text-gray-600 max-w-2xl mx-auto">
+          Explorez notre glossaire interactif pour apprendre les concepts clés de la crypto et de la finance.
+        </p>
+      </div>
+      <CryptoLessons onLessonClick={onLessonClick} />
     </div>
   );
 }
@@ -22,23 +23,40 @@ function PlaceholderPage({ title }: { title: string }) {
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [prefilledQuestion, setPrefilledQuestion] = useState<string | null>(null);
+
+  const handleNavigate = (page: string) => {
+    setActivePage(page);
+    if (page !== "learning") {
+      setPrefilledQuestion(null);
+    }
+  };
+
+  const handleLessonClick = (topic: string, question: string) => {
+    setPrefilledQuestion(question);
+    setActivePage("learning");
+  };
+
+  const handleLearnMoreClick = () => {
+    setActivePage("glossary");
+  };
 
   const renderPage = () => {
     switch (activePage) {
       case "dashboard":
-        return <DashboardPage />;
+        return <DashboardPage onLearnMoreClick={handleLearnMoreClick} />;
       case "glossary":
-        return <PlaceholderPage title="Glossaire Financier" />;
+        return <GlossaryPage onLessonClick={handleLessonClick} />;
       case "trading":
-        return <PlaceholderPage title="Marchés & Trading" />;
+        return <div className="flex flex-col items-center justify-center h-[60vh]"><h2 className="text-2xl font-bold">Marchés & Trading</h2></div>;
       case "risks":
-        return <PlaceholderPage title="Analyse de Risques" />;
+        return <div className="flex flex-col items-center justify-center h-[60vh]"><h2 className="text-2xl font-bold">Analyse de Risques</h2></div>;
       case "learning":
-        return <AskAIPage />;
+        return <AskAIPage initialQuestion={prefilledQuestion} />;
       case "settings":
-        return <PlaceholderPage title="Paramètres" />;
+        return <div className="flex flex-col items-center justify-center h-[60vh]"><h2 className="text-2xl font-bold">Paramètres</h2></div>;
       default:
-        return <DashboardPage />;
+        return <DashboardPage onLearnMoreClick={handleLearnMoreClick} />;
     }
   };
 
@@ -46,7 +64,7 @@ export default function App() {
     <div className="min-h-screen bg-[#F9F9F7] text-[#1F1F2E] font-sans selection:bg-purple-200 selection:text-purple-900 overflow-x-hidden">
       <Sidebar 
         activePage={activePage} 
-        onNavigate={setActivePage} 
+        onNavigate={handleNavigate} 
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
       />
