@@ -1,0 +1,4 @@
+evidently==0.4.20
+pandas
+numpy
+scikit-learn
