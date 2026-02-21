@@ -25,7 +25,7 @@ export function DashboardPage() {
   const runAnalysis = async () => {
     setLoading(true);
     try {
-      // API de Prédiction (Port 8000)
+      // API de Prédiction (Port 8080)
       const predRes = await fetch('http://localhost:8080/predict', { 
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
