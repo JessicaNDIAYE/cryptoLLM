@@ -1,6 +1,7 @@
 """
-Script de surveillance de la volatilité des cryptomonnaies et d'envoi d'alertes email
-Exécution recommandée : Toutes les 6 heures (via cron/tâche planifiée)
+Script de surveillance de la volatilité des cryptomonnaies et d'envoi d'alertes email.
+Inclut des liens Human-in-the-Loop pour validation/correction des prédictions.
+Exécution recommandée : Toutes les 6 heures (via entrypoint.sh ou cron).
 """
 
 import mysql.connector
@@ -8,16 +9,16 @@ from mysql.connector import Error
 import pandas as pd
 import pandas_ta as ta
 from binance.client import Client
-from datetime import datetime, timedelta
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
+import requests
 from dotenv import load_dotenv
 import logging
 from typing import List, Dict, Tuple
 
-# Configuration du logging
+# ── Logging ────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,23 +29,19 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Chargement des variables d'environnement
 load_dotenv()
 
-# ==================== CONFIGURATION ====================
-# Seuil de volatilité négative (en %) - à ajuster selon vos besoins
-VOLATILITY_THRESHOLD = -5.0  # -5% de volatilité
+# ── Configuration ──────────────────────────────────────────────────────
+VOLATILITY_THRESHOLD = float(os.getenv('VOLATILITY_THRESHOLD', '0.02'))
 
-# Configuration email (à configurer dans votre .env)
 SMTP_CONFIG = {
-    'host': os.getenv('SMTP_HOST', 'smtp.gmail.com'),  # Par défaut Gmail
+    'host': os.getenv('SMTP_HOST', 'smtp.gmail.com'),
     'port': int(os.getenv('SMTP_PORT', 587)),
     'username': os.getenv('SMTP_USERNAME'),
     'password': os.getenv('SMTP_PASSWORD'),
     'from_email': os.getenv('FROM_EMAIL', 'alerts@investbuddy.com')
 }
 
-# Configuration de la base de données
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'database': os.getenv('DB_NAME', 'investbuddy'),
@@ -52,385 +49,388 @@ DB_CONFIG = {
     'password': os.getenv('DB_PASSWORD', '')
 }
 
-# Mapping des symboles Binance vers les noms dans votre DB
+# URL de l'API de prédiction pour les liens de feedback
+PREDICTION_API_URL = os.getenv('PREDICTION_API_URL', 'http://localhost:8080')
+
 SYMBOL_MAPPING = {
-    'BTC': 'BTCUSDT',
-    'ETH': 'ETHUSDT',
-    'SOL': 'SOLUSDT',
-    'XRP': 'XRPUSDT',
-    'ADA': 'ADAUSDT',
-    'DOGE': 'DOGEUSDT',
-    'USDT': 'USDTUSDT',
-    'SHIB': 'SHIBUSDT',
-    'LINK': 'LINKUSDT',
-    'BNB': 'BNBUSDT',
-    'TRX': 'TRXUSDT',
-    'AVAX': 'AVAXUSDT',
-    'USDC': 'USDCUSDT'
+    'BTC': 'BTCUSDT', 'ETH': 'ETHUSDT', 'SOL': 'SOLUSDT',
+    'XRP': 'XRPUSDT', 'ADA': 'ADAUSDT', 'DOGE': 'DOGEUSDT',
+    'BNB': 'BNBUSDT', 'LINK': 'LINKUSDT', 'AVAX': 'AVAXUSDT'
 }
 
-# ==================== FONCTIONS BASE DE DONNÉES ====================
+# ── Base de données ────────────────────────────────────────────────────
 
 def get_db_connection():
-    """Établit une connexion à la base de données MySQL"""
     try:
-        connection = mysql.connector.connect(**DB_CONFIG)
-        return connection
+        return mysql.connector.connect(**DB_CONFIG)
     except Error as e:
-        logger.error(f"Erreur de connexion à la base de données: {e}")
+        logger.error(f"Erreur DB: {e}")
         return None
 
+
 def get_all_cryptocurrencies() -> List[str]:
-    """Récupère la liste de toutes les cryptomonnaies dans la base de données"""
     connection = get_db_connection()
     if not connection:
         return []
-    
     try:
         cursor = connection.cursor()
         cursor.execute("SELECT nom FROM Money")
         cryptos = [row[0] for row in cursor.fetchall()]
-        logger.info(f"{len(cryptos)} cryptomonnaies trouvées dans la base")
+        logger.info(f"{len(cryptos)} cryptomonnaies trouvées")
         return cryptos
     except Error as e:
-        logger.error(f"Erreur lors de la récupération des cryptomonnaies: {e}")
+        logger.error(f"Erreur récupération cryptos: {e}")
         return []
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
 
+
 def get_users_subscribed_to_crypto(crypto_name: str) -> List[Tuple[str, str, str]]:
-    """
-    Récupère les utilisateurs abonnés à une cryptomonnaie spécifique
-    Retourne une liste de tuples (email, nom, prenom)
-    """
     connection = get_db_connection()
     if not connection:
         return []
-    
     try:
         cursor = connection.cursor()
-        # Note: Adaptez cette requête selon votre schéma de base de données
-        # Si vous avez une table de subscriptions, modifiez cette requête
-        query = """
-        SELECT DISTINCT u.email, u.nom, u.prenom 
-        FROM User u
-        -- Si vous avez une table de subscriptions, décommentez les lignes suivantes:
-        -- JOIN Subscription s ON u.email = s.user_email
-        -- JOIN Money m ON s.money_id = m.id
-        -- WHERE m.nom = %s
-        """
-        
-        # Version simplifiée - tous les utilisateurs reçoivent les alertes
-        # À remplacer par la version avec subscriptions quand elle existera
-        query = "SELECT email, nom, prenom FROM User"
-        
-        cursor.execute(query, (crypto_name,))
+        cursor.execute("SELECT email, nom, prenom FROM User")
         users = cursor.fetchall()
         logger.info(f"{len(users)} utilisateurs trouvés pour {crypto_name}")
         return users
     except Error as e:
-        logger.error(f"Erreur lors de la récupération des utilisateurs: {e}")
+        logger.error(f"Erreur récupération utilisateurs: {e}")
         return []
     finally:
         if connection.is_connected():
             cursor.close()
             connection.close()
 
-# ==================== FONCTIONS BINANCE ====================
 
-def get_crypto_volatility(crypto_name: str) -> Tuple[float, float, Dict]:
+# ── Binance : calcul de volatilité ────────────────────────────────────
+
+def get_crypto_data(crypto_name: str) -> Tuple[float, float, Dict, Dict]:
     """
-    Calcule la volatilité d'une cryptomonnaie
-    Retourne: (volatilité actuelle, changement de prix, données détaillées)
+    Retourne (volatilité, changement de prix, détails, input_data pour /feedback)
     """
     symbol = SYMBOL_MAPPING.get(crypto_name)
     if not symbol:
         logger.warning(f"Pas de mapping Binance pour {crypto_name}")
-        return 0.0, 0.0, {}
-    
+        return 0.0, 0.0, {}, {}
+
     try:
-        # Connexion au client Binance
         client = Client(tld='us')
-        
-        # Récupération des données des dernières 24h
         klines = client.get_klines(
             symbol=symbol,
             interval=Client.KLINE_INTERVAL_1HOUR,
-            limit=24  # 24 heures de données
+            limit=60
         )
-        
-        # Conversion en DataFrame
-        data = pd.DataFrame(klines, columns=[
+
+        df = pd.DataFrame(klines, columns=[
             'Open time', 'Open', 'High', 'Low', 'Close', 'Volume',
             'Close time', 'Quote asset volume', 'Number of trades',
             'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'
         ])
-        
-        # Nettoyage
+
         for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
-            data[col] = pd.to_numeric(data[col], errors='coerce')
-        
-        # Calcul des rendements logarithmiques
-        data['Log_Return'] = (data['Close'] / data['Close'].shift(1))
-        
-        # Calcul de la volatilité (écart-type des rendements)
-        volatility = data['Log_Return'].std() * 100  # Conversion en pourcentage
-        
-        # Changement de prix sur 24h
-        price_change = ((data['Close'].iloc[-1] - data['Close'].iloc[0]) / data['Close'].iloc[0]) * 100
-        
-        # Prix actuel
-        current_price = data['Close'].iloc[-1]
-        
-        # Données détaillées pour l'email
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Indicateurs techniques
+        df['RSI'] = ta.rsi(df['Close'], length=14)
+        df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+        df['SMA_20'] = ta.sma(df['Close'], length=20)
+        df['EMA_50'] = ta.ema(df['Close'], length=50)
+        df['VolumeChange'] = df['Volume'].pct_change()
+        df.dropna(inplace=True)
+
+        last = df.iloc[-1]
+        volatility = df['Close'].pct_change().std() * 100
+        price_change = ((last['Close'] - df.iloc[0]['Close']) / df.iloc[0]['Close']) * 100
+
         details = {
             'symbol': symbol,
-            'current_price': current_price,
-            'high_24h': data['High'].max(),
-            'low_24h': data['Low'].min(),
-            'volume_24h': data['Volume'].sum(),
+            'current_price': last['Close'],
+            'high_24h': df['High'].max(),
+            'low_24h': df['Low'].min(),
+            'volume_24h': df['Volume'].sum(),
             'price_change': price_change
         }
-        
+
+        # Input data pour construire les liens de feedback
+        input_data = {
+            'Open': float(last['Open']),
+            'High': float(last['High']),
+            'Low': float(last['Low']),
+            'Close': float(last['Close']),
+            'Volume': float(last['Volume']),
+            'RSI': float(last['RSI']),
+            'ATR': float(last['ATR']),
+            'VolumeChange': float(last['VolumeChange']),
+            'SMA_20': float(last['SMA_20']),
+            'EMA_50': float(last['EMA_50']),
+        }
+
         logger.info(f"{crypto_name} - Volatilité: {volatility:.2f}%, Variation: {price_change:.2f}%")
-        
-        return volatility, price_change, details
-        
+        return volatility, price_change, details, input_data
+
     except Exception as e:
-        logger.error(f"Erreur lors du calcul de volatilité pour {crypto_name}: {e}")
-        return 0.0, 0.0, {}
+        logger.error(f"Erreur Binance pour {crypto_name}: {e}")
+        return 0.0, 0.0, {}, {}
 
-# ==================== FONCTIONS EMAIL ====================
 
-def send_alert_email(user_email: str, user_name: str, crypto_name: str, 
-                     volatility: float, price_change: float, details: Dict):
+def get_prediction(currency: str, input_data: Dict) -> Dict:
+    """Appelle l'API /predict pour obtenir la prédiction ML"""
+    try:
+        payload = {"currency": currency, **input_data}
+        r = requests.post(f"{PREDICTION_API_URL}/predict", json=payload, timeout=5)
+        if r.status_code == 200:
+            return r.json().get('prediction', {})
+    except Exception as e:
+        logger.error(f"Erreur appel /predict: {e}")
+    return {}
+
+
+# ── Envoi email avec liens Human-in-the-Loop ─────────────────────────
+
+def send_alert_email(user_email: str, user_name: str, crypto_name: str,
+                     volatility: float, price_change: float, details: Dict,
+                     prediction: Dict, feedback_confirm_url: str, feedback_deny_url: str) -> bool:
     """
-    Envoie un email d'alerte à un utilisateur
+    Envoie un email d'alerte avec des boutons de validation Human-in-the-Loop.
     """
     if not all([SMTP_CONFIG['username'], SMTP_CONFIG['password']]):
-        logger.error("Configuration email incomplète. Vérifiez votre fichier .env")
+        logger.error("Configuration SMTP incomplète. Vérifiez votre fichier .env")
         return False
-    
+
     try:
-        # Création du message
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"🚨 Alerte InvestBuddy: Forte variation sur {crypto_name}"
+        msg['Subject'] = f"🚨 InvestBuddy - Alerte Volatilité sur {crypto_name}"
         msg['From'] = SMTP_CONFIG['from_email']
         msg['To'] = user_email
-        
-        # Construction du contenu HTML
+
+        direction = prediction.get('direction', 'N/A')
+        vol_pred = prediction.get('volatility', volatility / 100)
+        dir_color = "#4CAF50" if direction == "up" else "#f44336"
+        dir_emoji = "📈" if direction == "up" else "📉"
+
         html_content = f"""
+        <!DOCTYPE html>
         <html>
         <head>
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                          color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
-                .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-                .alert {{ background: #fee; border-left: 4px solid #f44336; padding: 15px; margin: 20px 0; }}
-                .stats {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }}
-                .stat-item {{ display: flex; justify-content: space-between; margin: 10px 0; 
-                             border-bottom: 1px solid #eee; padding-bottom: 5px; }}
-                .negative {{ color: #f44336; font-weight: bold; }}
-                .positive {{ color: #4CAF50; font-weight: bold; }}
-                .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 0.9em; }}
-                .button {{ display: inline-block; padding: 10px 20px; background: #667eea;
-                          color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }}
-            </style>
+          <style>
+            body {{ font-family: Arial, sans-serif; background: #f0f4ff; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white;
+                         border-radius: 15px; overflow: hidden;
+                         box-shadow: 0 4px 20px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                       color: white; padding: 30px; text-align: center; }}
+            .content {{ padding: 30px; }}
+            .alert-box {{ background: #fff3cd; border-left: 4px solid #ffc107;
+                          padding: 15px; border-radius: 5px; margin: 20px 0; }}
+            .stats {{ background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }}
+            .stat-row {{ display: flex; justify-content: space-between;
+                         padding: 8px 0; border-bottom: 1px solid #eee; }}
+            .prediction-box {{ background: #e8f4fd; border-left: 4px solid #2196F3;
+                               padding: 15px; border-radius: 5px; margin: 20px 0; }}
+            .feedback-section {{ text-align: center; background: #f0f7ff;
+                                  padding: 25px; border-radius: 10px; margin: 25px 0; }}
+            .btn-confirm {{ display: inline-block; padding: 14px 30px; background: #4CAF50;
+                            color: white !important; text-decoration: none;
+                            border-radius: 8px; margin: 8px; font-weight: bold; }}
+            .btn-deny {{ display: inline-block; padding: 14px 30px; background: #f44336;
+                         color: white !important; text-decoration: none;
+                         border-radius: 8px; margin: 8px; font-weight: bold; }}
+            .footer {{ text-align: center; padding: 20px; color: #888;
+                       font-size: 0.85em; background: #f8f9fa; }}
+          </style>
         </head>
         <body>
-            <div class="container">
-                <div class="header">
-                    <h1>InvestBuddy - Alerte Volatilité</h1>
-                </div>
-                <div class="content">
-                    <h2>Bonjour {user_name},</h2>
-                    
-                    <p>Notre système de surveillance a détecté une variation significative sur <strong>{crypto_name}</strong> qui pourrait vous intéresser.</p>
-                    
-                    <div class="alert">
-                        <h3 style="margin-top: 0;">🚨 Alerte de volatilité</h3>
-                        <p>La volatilité de <strong>{crypto_name}</strong> a atteint <span class="negative">{volatility:.2f}%</span> 
-                           avec une variation de prix de <span class="negative">{price_change:.2f}%</span>.</p>
-                    </div>
-                    
-                    <div class="stats">
-                        <h3>📊 Statistiques 24h</h3>
-                        <div class="stat-item">
-                            <span>Prix actuel:</span>
-                            <strong>${details.get('current_price', 0):,.2f}</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Plus haut 24h:</span>
-                            <strong>${details.get('high_24h', 0):,.2f}</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Plus bas 24h:</span>
-                            <strong>${details.get('low_24h', 0):,.2f}</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Volume 24h:</span>
-                            <strong>${details.get('volume_24h', 0):,.0f}</strong>
-                        </div>
-                    </div>
-                    
-                    <p style="text-align: center;">
-                        <a href="http://localhost:5173/trading" class="button">Voir sur InvestBuddy</a>
-                    </p>
-                    
-                    <div class="footer">
-                        <p>Cet email a été envoyé automatiquement par InvestBuddy.</p>
-                        <p>Pour gérer vos alertes, rendez-vous dans vos <a href="http://localhost:5173/settings">paramètres</a>.</p>
-                    </div>
-                </div>
+          <div class="container">
+            <div class="header">
+              <h1>📈 InvestBuddy</h1>
+              <p>Alerte de volatilité détectée</p>
             </div>
+            <div class="content">
+              <p>Bonjour <strong>{user_name}</strong>,</p>
+              <div class="alert-box">
+                <strong>⚠️ Forte variation détectée sur {crypto_name}</strong><br>
+                Notre système de surveillance a identifié une activité inhabituelle.
+              </div>
+
+              <div class="stats">
+                <h3>📊 Statistiques de marché (24h)</h3>
+                <div class="stat-row">
+                  <span>Prix actuel</span>
+                  <strong>${details.get('current_price', 0):,.2f}</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Plus haut 24h</span>
+                  <strong>${details.get('high_24h', 0):,.2f}</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Plus bas 24h</span>
+                  <strong>${details.get('low_24h', 0):,.2f}</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Variation de prix</span>
+                  <strong style="color: {'#4CAF50' if price_change >= 0 else '#f44336'}">
+                    {'+' if price_change >= 0 else ''}{price_change:.2f}%
+                  </strong>
+                </div>
+                <div class="stat-row">
+                  <span>Volatilité calculée</span>
+                  <strong style="color: #f44336">{volatility:.4f}%</strong>
+                </div>
+              </div>
+
+              <div class="prediction-box">
+                <h3>🤖 Prédiction du modèle IA</h3>
+                <div class="stat-row">
+                  <span>Direction prédite</span>
+                  <strong style="color: {dir_color}">{dir_emoji} {direction.upper()}</strong>
+                </div>
+                <div class="stat-row">
+                  <span>Volatilité prédite</span>
+                  <strong>{vol_pred:.6f}</strong>
+                </div>
+              </div>
+
+              <div class="feedback-section">
+                <h3>🤔 La prédiction vous semble-t-elle correcte ?</h3>
+                <p>Votre retour améliore notre modèle d'IA. Cliquez sur un bouton ci-dessous :</p>
+                <a href="{feedback_confirm_url}" class="btn-confirm">
+                  ✅ Oui, je confirme la prédiction
+                </a>
+                <br>
+                <a href="{feedback_deny_url}" class="btn-deny">
+                  ❌ Non, je corrige la prédiction
+                </a>
+                <p style="font-size: 0.8em; color: #888; margin-top: 15px;">
+                  En cliquant, vous aidez InvestBuddy à améliorer ses prédictions.
+                </p>
+              </div>
+            </div>
+            <div class="footer">
+              <p>Cet email a été envoyé automatiquement par InvestBuddy.</p>
+              <p>
+                <a href="http://localhost:5173">Ouvrir InvestBuddy</a> |
+                <a href="http://localhost:5173/settings">Gérer mes alertes</a>
+              </p>
+            </div>
+          </div>
         </body>
         </html>
         """
-        
-        # Version texte simple
+
         text_content = f"""
-        InvestBuddy - Alerte Volatilité
-        
-        Bonjour {user_name},
-        
-        Notre système a détecté une variation significative sur {crypto_name}:
-        
-        Volatilité: {volatility:.2f}%
-        Variation de prix: {price_change:.2f}%
-        Prix actuel: ${details.get('current_price', 0):,.2f}
-        
-        Rendez-vous sur InvestBuddy pour plus de détails.
-        
-        Cet email a été envoyé automatiquement.
+InvestBuddy - Alerte Volatilité sur {crypto_name}
+
+Bonjour {user_name},
+
+Forte variation détectée sur {crypto_name} :
+- Prix actuel : ${details.get('current_price', 0):,.2f}
+- Variation : {price_change:.2f}%
+- Volatilité : {volatility:.4f}%
+- Prédiction IA : {direction.upper()} (volatilité prédite : {vol_pred:.6f})
+
+La prédiction vous semble-t-elle correcte ?
+✅ CONFIRMER : {feedback_confirm_url}
+❌ CORRIGER  : {feedback_deny_url}
+
+Merci pour votre retour - InvestBuddy
         """
-        
-        # Attacher les versions texte et HTML
-        part1 = MIMEText(text_content, 'plain')
-        part2 = MIMEText(html_content, 'html')
-        msg.attach(part1)
-        msg.attach(part2)
-        
-        # Envoi de l'email
+
+        msg.attach(MIMEText(text_content, 'plain'))
+        msg.attach(MIMEText(html_content, 'html'))
+
         with smtplib.SMTP(SMTP_CONFIG['host'], SMTP_CONFIG['port']) as server:
             server.starttls()
             server.login(SMTP_CONFIG['username'], SMTP_CONFIG['password'])
             server.send_message(msg)
-        
-        logger.info(f"Email envoyé avec succès à {user_email}")
+
+        logger.info(f"✅ Email envoyé à {user_email} pour {crypto_name}")
         return True
-        
+
     except Exception as e:
-        logger.error(f"Erreur lors de l'envoi de l'email à {user_email}: {e}")
+        logger.error(f"❌ Erreur envoi email à {user_email}: {e}")
         return False
 
-# ==================== FONCTION PRINCIPALE ====================
+
+# ── Fonction principale ────────────────────────────────────────────────
 
 def check_volatility_and_alert():
     """
-    Fonction principale qui :
-    1. Récupère toutes les cryptomonnaies
-    2. Calcule leur volatilité
-    3. Vérifie si le seuil négatif est dépassé
-    4. Envoie des alertes aux utilisateurs concernés
+    1. Récupère toutes les cryptomonnaies de la DB
+    2. Calcule leur volatilité via Binance
+    3. Si seuil dépassé → appelle /predict → construit les liens feedback → envoie email
     """
-    logger.info("=" * 50)
-    logger.info("Début de la surveillance de volatilité")
-    logger.info(f"Seuil de volatilité négative: {VOLATILITY_THRESHOLD}%")
-    
-    # Récupération de toutes les cryptomonnaies
+    logger.info("=" * 60)
+    logger.info("Début surveillance volatilité InvestBuddy")
+    logger.info(f"Seuil de volatilité : {VOLATILITY_THRESHOLD}%")
+
     cryptos = get_all_cryptocurrencies()
-    
     if not cryptos:
-        logger.warning("Aucune cryptomonnaie trouvée dans la base")
+        logger.warning("Aucune crypto trouvée en base")
         return
-    
+
     alerts_sent = 0
     alerts_failed = 0
-    
-    # Analyse de chaque cryptomonnaie
+
     for crypto in cryptos:
-        logger.info(f"\nAnalyse de {crypto}...")
-        
-        # Calcul de la volatilité
-        volatility, price_change, details = get_crypto_volatility(crypto)
-        
-        # Vérification du seuil (volatilité négative)
-        if volatility < VOLATILITY_THRESHOLD:
-            logger.warning(f"⚠️ {crypto} - Volatilité critique: {volatility:.2f}%")
-            
-            # Récupération des utilisateurs abonnés
+        logger.info(f"\n── Analyse de {crypto} ──")
+        volatility, price_change, details, input_data = get_crypto_data(crypto)
+
+        if not input_data:
+            continue
+
+        if volatility > VOLATILITY_THRESHOLD:
+            logger.warning(f"⚠️ {crypto} - Volatilité critique : {volatility:.4f}%")
+
+            # Obtenir la prédiction ML
+            symbol = SYMBOL_MAPPING.get(crypto, crypto + 'USDT')
+            prediction = get_prediction(symbol, input_data)
+            if not prediction:
+                prediction = {'direction': 'unknown', 'volatility': volatility / 100}
+
+            # Construire les liens de feedback
+            vol_pred = prediction.get('volatility', volatility / 100)
+            direc = prediction.get('direction', 'unknown')
+            params = "&".join([f"{k}={v}" for k, v in input_data.items()])
+
+            feedback_confirm_url = (
+                f"{PREDICTION_API_URL}/feedback?currency={symbol}&label=confirm"
+                f"&prediction_vol={vol_pred}&prediction_dir={direc}&{params}"
+            )
+            feedback_deny_url = (
+                f"{PREDICTION_API_URL}/feedback?currency={symbol}&label=deny"
+                f"&prediction_vol={vol_pred}&prediction_dir={direc}&{params}"
+            )
+
+            # Récupérer les utilisateurs et envoyer les alertes
             users = get_users_subscribed_to_crypto(crypto)
-            
-            if not users:
-                logger.info(f"Aucun utilisateur abonné à {crypto}")
-                continue
-            
-            # Envoi des alertes
             for user_email, user_nom, user_prenom in users:
-                user_name = f"{user_prenom} {user_nom}"
+                user_name = f"{user_prenom} {user_nom}".strip() or user_email
                 success = send_alert_email(
                     user_email=user_email,
                     user_name=user_name,
                     crypto_name=crypto,
                     volatility=volatility,
                     price_change=price_change,
-                    details=details
+                    details=details,
+                    prediction=prediction,
+                    feedback_confirm_url=feedback_confirm_url,
+                    feedback_deny_url=feedback_deny_url
                 )
-                
                 if success:
                     alerts_sent += 1
                 else:
                     alerts_failed += 1
-                    
         else:
-            logger.info(f"✅ {crypto} - Volatilité normale: {volatility:.2f}%")
-    
-    # Résumé
-    logger.info("\n" + "=" * 50)
-    logger.info("RÉSUMÉ DE L'EXÉCUTION")
-    logger.info(f"Cryptomonnaies analysées: {len(cryptos)}")
-    logger.info(f"Alertes envoyées avec succès: {alerts_sent}")
-    logger.info(f"Échecs d'envoi: {alerts_failed}")
-    logger.info("=" * 50)
+            logger.info(f"✅ {crypto} - Volatilité normale : {volatility:.4f}%")
 
-# ==================== CONFIGURATION .ENV ====================
+    logger.info("\n" + "=" * 60)
+    logger.info(f"Alertes envoyées : {alerts_sent} | Échecs : {alerts_failed}")
+    logger.info("=" * 60)
 
-def create_env_template():
-    """
-    Crée un template .env pour la configuration
-    """
-    template = """
-# Configuration de la base de données
-DB_HOST=localhost
-DB_NAME=investbuddy
-DB_USER=root
-DB_PASSWORD=votre_mot_de_passe
-
-# Configuration email (Gmail exemple)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=votre.email@gmail.com
-SMTP_PASSWORD=votre_mot_de_passe_application
-FROM_EMAIL=alerts@investbuddy.com
-
-# Seuil de volatilité (optionnel, défaut = -5.0)
-VOLATILITY_THRESHOLD=-5.0
-"""
-    
-    if not os.path.exists('.env'):
-        with open('.env.example', 'w') as f:
-            f.write(template)
-        logger.info("Fichier .env.example créé. Renommez-le en .env et configurez-le.")
-
-# ==================== POINT D'ENTRÉE ====================
 
 if __name__ == "__main__":
-    # Création du template .env si nécessaire
-    create_env_template()
-    
-    # Exécution de la surveillance
     check_volatility_and_alert()

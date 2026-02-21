@@ -1,6 +1,12 @@
 version: "3.9"
 
+networks:
+  investbuddy_net:
+    driver: bridge
+
 services:
+
+  # ─── Base de données MySQL ──────────────────────────────────────
   mysql:
     image: mysql:8.0
     container_name: investbuddy-mysql
@@ -15,7 +21,10 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./bd/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - investbuddy_net
 
+  # ─── API Agent RAG / Analyse ────────────────────────────────────
   agent-api:
     build:
       context: ./agent
@@ -31,8 +40,61 @@ services:
       DB_USER: investuser
       DB_PASSWORD: investpassword
       DB_NAME: investbuddy
+    env_file:
+      - ./agent/.env
     restart: unless-stopped
+    networks:
+      - investbuddy_net
 
+  # ─── API Prédiction ML (FastAPI - serving) ──────────────────────
+  prediction-api:
+    build:
+      context: ./serving
+      dockerfile: Dockerfile
+    container_name: investbuddy-prediction-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./serving:/app
+      - ./data:/app/../data
+      - ./serving/artifacts:/app/artifacts
+    environment:
+      N8N_WEBHOOK_URL: http://n8n:5678/webhook/investbuddy-alert
+      API_BASE_URL: http://localhost:8080
+      RETRAIN_THRESHOLD: "10"
+    depends_on:
+      - n8n
+    restart: unless-stopped
+    networks:
+      - investbuddy_net
+
+  # ─── n8n : Orchestrateur IA & Notifications ─────────────────────
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: investbuddy-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=Europe/Paris
+      - N8N_ENCRYPTION_KEY=investbuddy-secret-key-2025
+      - N8N_SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
+      - N8N_SMTP_PORT=${SMTP_PORT:-587}
+      - N8N_SMTP_USER=${SMTP_USERNAME:-}
+      - N8N_SMTP_PASS=${SMTP_PASSWORD:-}
+      - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL:-alerts@investbuddy.com}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+    restart: unless-stopped
+    networks:
+      - investbuddy_net
+
+  # ─── Frontend Web (Next.js / React + Vite) ──────────────────────
   webapp:
     build:
       context: ./webapp
@@ -44,7 +106,11 @@ services:
       - /app/node_modules
     depends_on:
       - agent-api
+      - prediction-api
     restart: unless-stopped
+    networks:
+      - investbuddy_net
 
 volumes:
   mysql_data:
+  n8n_data:
