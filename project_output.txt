@@ -1,0 +1,6 @@
+Generating report for BTCUSDT
+Report saved to workspace for BTCUSDT
+BTCUSDT drift score: could not extract
+Generating report for ETHUSDT
+No production data yet
+All reports generated

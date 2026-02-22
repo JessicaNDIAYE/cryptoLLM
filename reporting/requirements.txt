@@ -1,4 +1,5 @@
 evidently==0.4.20
 pandas
-numpy
+numpy<2.0
 scikit-learn
+requests
