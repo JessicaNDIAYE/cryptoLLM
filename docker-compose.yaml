@@ -121,7 +121,7 @@ services:
       - "8082:8082"
 
     volumes:
-      - ./data:/app/data
+      - ./data:/data
       - ./reporting/workspace:/app/workspace
 
     environment:

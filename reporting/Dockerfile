@@ -7,6 +7,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+RUN chmod +x entrypoint.sh
+
 EXPOSE 8082
 
-CMD python project.py && evidently ui --host 0.0.0.0 --port 8082
+CMD ["./entrypoint.sh"]
