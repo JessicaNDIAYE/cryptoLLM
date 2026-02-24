@@ -112,6 +112,27 @@ services:
     networks:
       - investbuddy_net
 
+  evidently:
+    build: ./reporting
+
+    container_name: evidently_monitoring
+
+    ports:
+      - "8082:8082"
+
+    volumes:
+      - ./data:/data
+      - ./reporting/workspace:/app/workspace
+
+    environment:
+      - SERVING_API_URL=http://prediction-api:8080
+
+    depends_on:
+      - prediction-api
+
+    networks:
+      - investbuddy_net
+      
 volumes:
   mysql_data:
   n8n_data:

@@ -233,14 +233,6 @@ async def receive_feedback(
 
         print(f"📝 Feedback saved [{label}] for {prefix}. Total prod rows: {line_count}")
 
-        retrain_msg = ""
-        if line_count > 0 and line_count % RETRAIN_THRESHOLD == 0:
-            background_tasks.add_task(retrain_models, prefix)
-            retrain_msg = f"<p>🔄 <strong>Réentraînement automatique déclenché</strong> ({line_count} feedbacks collectés) !</p>"
-        else:
-            remaining = RETRAIN_THRESHOLD - (line_count % RETRAIN_THRESHOLD)
-            retrain_msg = f"<p>📊 Feedback #{line_count} enregistré. Encore <strong>{remaining}</strong> avant le prochain réentraînement.</p>"
-
         action_color = "#4CAF50" if label == "confirm" else "#f44336"
         action_text = "✅ Prédiction confirmée" if label == "confirm" else "❌ Prédiction corrigée"
 
@@ -268,7 +260,6 @@ async def receive_feedback(
               <p><strong>Direction prédite :</strong> {prediction_dir}</p>
               <p><strong>Volatilité :</strong> {prediction_vol:.6f}</p>
             </div>
-            {retrain_msg}
             <p style="color: #888;">Votre retour aide notre IA à s'améliorer. Merci ! 🙏</p>
             <a href="http://localhost:5173" class="btn">Retour sur InvestBuddy</a>
           </div>
@@ -321,6 +312,21 @@ def retrain_models(currency: str):
         print(f"✅ Retraining done for {currency} on {len(combined)} samples")
     except Exception as e:
         print(f"❌ Retraining error for {currency}: {e}")
+
+@app.post("/retrain/{currency}")
+async def retrain_endpoint(currency: str, background_tasks: BackgroundTasks):
+
+    prefix = currency.upper()
+
+    if prefix not in ["BTCUSDT", "ETHUSDT"]:
+        raise HTTPException(status_code=400, detail="Unsupported currency")
+
+    background_tasks.add_task(retrain_models, prefix)
+
+    return {
+        "status": "retraining_started",
+        "currency": prefix
+    }
 
 
 if __name__ == "__main__":
