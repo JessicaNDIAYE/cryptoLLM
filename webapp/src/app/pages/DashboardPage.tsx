@@ -28,7 +28,7 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
             body: JSON.stringify({
                 currency: selectedCurrency,
                 Open: 42000, High: 43000, Low: 41500, Close: 42500,
-                Volume: 1000, RSI: 55, ATR: 0.02, VolumeChange: 0.1, SMA_20: 42000, EMA_50: 41000
+                Volume: 1000, RSI: 55, ATR: 0.02, MACD: 0.01, BB_Width: 0.05, Lag_Close_1: 42400
             })
       });
       const predData = await predRes.json();

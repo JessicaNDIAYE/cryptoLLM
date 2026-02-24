@@ -1,3 +1,6 @@
+from sklearn.base import accuracy_score
+from sklearn.metrics import mean_absolute_error
+
 from binance.client import Client
 import pandas as pd
 import pandas_ta as ta
@@ -19,9 +22,9 @@ def update_crypto_data():
                                      'Close time', 'Quote asset volume', 'Number of trades',
                                         'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
         
-        df['Open time'] = pd.to_datetime(df['Open time'], unit='ms')
         for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
             df[col] = pd.to_numeric(df[col], errors='coerce')
+        df['Open time'] = pd.to_datetime(df['Open time'], unit='ms')
         
         # Conversion des types
         df['Open'] = df['Open'].astype(float)
@@ -33,39 +36,49 @@ def update_crypto_data():
         # Calcul des indicateurs techniques
         df['RSI'] = ta.rsi(df['Close'], length=14)
         df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-        df['SMA_20'] = ta.sma(df['Close'], length=20)
-        df['EMA_50'] = ta.ema(df['Close'], length=50)
-        df['VolumeChange'] = df['Volume'].pct_change()
-        df['Price_prediction'] = df['Close'].shift(-4)
+        df['MACD'] = ta.macd(df['Close'])['MACD_12_26_9']
+        df['BB_width'] = ta.bbands(df['Close'])['BBL_20_2.0'] - ta.bbands(df['Close'])['BBU_20_2.0'] / ta.bbands(df['Close'])['BBU_20_2.0']
+        for i in range(1, 4):
+            df[f'Lag_Close_{i}'] = df['Close'].shift(i)
 
-        df['Target_Direction'] = (df['Price_prediction'] > df['Close']).astype(int)
-
+        #Targets
+        df['Price_Next_24h'] = df['Close'].shift(-4)
+        df['Target_Direction'] = (df['Price_Next_24h'] > df['Close']).astype(int)
         df['Log_Return'] = (df['Close'] / df['Close'].shift(1))
-
         df['volatility'] = df['Log_Return'].rolling(window=4).std()
-
         df['Target_Volatility'] = df['volatility'].shift(-4)
 
         df.dropna(inplace=True)
 
-        colonnes = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'VolumeChange', 'SMA_20', 'EMA_50']
+        colonnes = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'MACD', 'BB_width', 'Lag_Close_1']
 
         X = df[colonnes]
-        y_vol = df['Target_Volatility']
-        y_dir = df['Target_Direction']
 
+        # Split des données en train/test
+        split = int(len(df) * 0.8)
+        X_train, X_test = X.iloc[:split], X.iloc[split:]
+        y_v_train, y_v_test = df['Target_Volatility'].iloc[:split], df['Target_Volatility'].iloc[split:]
+        y_d_train, y_d_test = df['Target_Direction'].iloc[:split], df['Target_Direction'].iloc[split:]
+
+        # Normalisation
         SS = StandardScaler()
-        X_scaled = SS.fit_transform(X)
+        X_train_scaled = SS.fit_transform(X_train)
+        X_test_scaled = SS.transform(X_test)
+
+        # Entraînement des modèles
         model_vol = RandomForestRegressor(n_estimators=100, random_state=42)
         model_dir = RandomForestRegressor(n_estimators=100, random_state=42)
+        model_vol.fit(X_train_scaled, y_v_train)
+        model_dir.fit(X_train_scaled, y_d_train)
 
-        model_vol.fit(X_scaled, y_vol)
-        model_dir.fit(X_scaled, y_dir)
+        v_pred = model_vol.predict(X_test_scaled)
+        d_pred = (model_dir.predict(X_test_scaled) > 0.5).astype(int)
+        
+        print(f"📈 Performance {currency}:")
+        print(f"   - MAE Volatilité : {mean_absolute_error(y_v_test, v_pred):.5f}")
+        print(f"   - Accuracy Direction : {accuracy_score(y_d_test, d_pred)*100:.2f}%")
 
-        ref_df = pd.DataFrame(X_scaled, columns=colonnes)
-        ref_df['target_vol'] = y_vol.values
-        ref_df['target_dir'] = y_dir.values
-        ref_df.to_csv(f'data/{currency}_ref_data.csv', index=False)
+        df.to_csv(f'data/{currency}_ref_data.csv', index=False)
 
         prefix = f"artifacts/{currency}_"
         joblib.dump(model_vol, f"{prefix}model_volatility.pickle")

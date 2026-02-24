@@ -41,9 +41,9 @@ class CurrencyData(BaseModel):
     Volume: float
     RSI: float
     ATR: float
-    VolumeChange: float
-    SMA_20: float
-    EMA_50: float
+    MACD: float 
+    BB_Width: float 
+    Lag_Close_1: float
 
 class NotifyRequest(BaseModel):
     currency: str
@@ -82,7 +82,7 @@ async def predict(data: CurrencyData):
         m = models[prefix]
         input_data = [[
             data.Open, data.High, data.Low, data.Close, data.Volume,
-            data.RSI, data.ATR, data.VolumeChange, data.SMA_20, data.EMA_50
+            data.RSI, data.ATR, data.MACD, data.BB_Width, data.Lag_Close_1
         ]]
         input_scaled = m['scaler'].transform(input_data)
         vol_pred = float(m['vol'].predict(input_scaled)[0])
@@ -124,8 +124,7 @@ async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks)
         # Valeurs par défaut si input_data est incomplet
         default_input = {
             'Open': 42000, 'High': 43000, 'Low': 41500, 'Close': 42500,
-            'Volume': 1000, 'RSI': 55, 'ATR': 0.02, 'VolumeChange': 0.1, 
-            'SMA_20': 42000, 'EMA_50': 41000
+            'Volume': 1000, 'RSI': 55, 'ATR': 0.02, 'MACD': 0.01, 'BB_Width': 0.05, 'Lag_Close_1': 42400
         }
         
         # Fusion avec les valeurs fournies
@@ -188,9 +187,9 @@ async def receive_feedback(
     Volume: float,
     RSI: float,
     ATR: float,
-    VolumeChange: float,
-    SMA_20: float,
-    EMA_50: float,
+    MACD: float,
+    BB_Width: float,
+    Lag_Close_1: float,
     background_tasks: BackgroundTasks
 ):
     """
@@ -200,8 +199,8 @@ async def receive_feedback(
     """
     try:
         prefix = currency.upper()
-        columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'VolumeChange', 'SMA_20', 'EMA_50']
-        raw_values = [Open, High, Low, Close, Volume, RSI, ATR, VolumeChange, SMA_20, EMA_50]
+        columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1']
+        raw_values = [Open, High, Low, Close, Volume, RSI, ATR, MACD, BB_Width, Lag_Close_1]
 
         # Normaliser avec le scaler existant
         if prefix in models:
@@ -298,7 +297,7 @@ def retrain_models(currency: str):
 
         combined = pd.concat([ref_df, prod_df], ignore_index=True).dropna()
 
-        cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'VolumeChange', 'SMA_20', 'EMA_50']
+        cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1']
         X = combined[cols]
         y_vol = combined['target_vol']
         y_dir = combined['target_dir']
