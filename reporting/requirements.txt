@@ -1,4 +1,4 @@
-evidently>=0.7.0
+evidently==0.7.20
 pandas
 numpy<2.0
 scikit-learn
