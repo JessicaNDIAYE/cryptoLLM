@@ -11,7 +11,7 @@ import joblib
 
 def update_crypto_data():
     client = Client(tld = 'us')
-    currencies = ['BTCUSDT', 'ETHUSDT']
+    currencies = ['BTCUSDT', 'ETHUSDT'] # , 'SOLUSDT', 'ADAUSDT', 'XRPUSDT', 'DOGEUSDT', 'SHIBUSDT', 'BNBUSDT','LINKUSDT', 'AVAXUSDT', 'TRXUSDT']
 
     os.makedirs('artifacts', exist_ok=True)
 

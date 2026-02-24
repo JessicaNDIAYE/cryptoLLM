@@ -16,6 +16,15 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
   const availableCurrencies = [
     { value: "BTCUSDT", label: "Bitcoin (BTC)" },
     { value: "ETHUSDT", label: "Ethereum (ETH)" },
+    // { value: "SOLUSDT", label: "Solana (SOL)" },
+    // { value: "ADAUSDT", label: "Cardano (ADA)" },
+    // { value: "XRPUSDT", label: "Ripple (XRP)" },
+    // { value: "DOGEUSDT", label: "Dogecoin (DOGE)" },
+    // { value: "SHIBUSDT", label: "Shiba Inu (SHIB)" },
+    // { value: "BNBUSDT", label: "Binance Coin (BNB)" },
+    // { value: "LINKUSDT", label: "Chainlink (LINK)" },
+    // { value: "AVAXUSDT", label: "Avalanche (AVAX)" },
+    // { value: "TRXUSDT", label: "Tron (TRX)" }
   ];
 
   const runAnalysis = async () => {
