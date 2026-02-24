@@ -1,5 +1,4 @@
-from sklearn.base import accuracy_score
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_absolute_error, accuracy_score
 
 from binance.client import Client
 import pandas as pd
@@ -17,7 +16,7 @@ def update_crypto_data():
 
     for currency in currencies:
         # Récupération des données historiques
-        klines = client.get_historical_klines(currency, Client.KLINE_INTERVAL_6HOUR, "1 Jan, 2025")
+        klines = client.get_historical_klines(currency, Client.KLINE_INTERVAL_6HOUR, "1 Jan, 2023")
         df = pd.DataFrame(klines, columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume',
                                      'Close time', 'Quote asset volume', 'Number of trades',
                                         'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
@@ -37,7 +36,11 @@ def update_crypto_data():
         df['RSI'] = ta.rsi(df['Close'], length=14)
         df['ATR'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
         df['MACD'] = ta.macd(df['Close'])['MACD_12_26_9']
-        df['BB_width'] = ta.bbands(df['Close'])['BBL_20_2.0'] - ta.bbands(df['Close'])['BBU_20_2.0'] / ta.bbands(df['Close'])['BBU_20_2.0']
+        bb = ta.bbands(df['Close'], length=20, std=2)
+        upper_col = [c for c in bb.columns if c.startswith('BBU')][0]
+        lower_col = [c for c in bb.columns if c.startswith('BBL')][0]
+
+        df['BB_width'] = bb[upper_col] - bb[lower_col]
         for i in range(1, 4):
             df[f'Lag_Close_{i}'] = df['Close'].shift(i)
 
