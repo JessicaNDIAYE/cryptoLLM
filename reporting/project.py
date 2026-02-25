@@ -1,6 +1,8 @@
 import os
 import pandas as pd
+import numpy as np
 import requests
+import joblib
 
 SERVING_API_URL = os.getenv(
     "SERVING_API_URL",
@@ -60,16 +62,66 @@ def load_reference(currency):
         return None
     return pd.read_csv(path)
 
+def load_scaler(currency):
+    scaler_path = os.path.abspath(
+        os.path.join(BASE_DIR, "..", "serving", "artifacts", f"{currency}_scaler.pickle")
+    )
+
+    if not os.path.exists(scaler_path):
+        print(f"Scaler missing for {currency}: {scaler_path}")
+        return None
+
+    try:
+        scaler = joblib.load(scaler_path)
+        print(f"Scaler loaded for {currency}")
+        return scaler
+
+    except Exception as e:
+        print(f"Error loading scaler for {currency}: {e}")
+        return None
 
 def load_production(currency):
     path = os.path.join(DATA_DIR, "prod_data.csv")
+
     if not os.path.exists(path):
         print("Production data missing")
         return None
+
     df = pd.read_csv(path)
+
+    # filtrer la currency
     if "currency" in df.columns:
         df = df[df["currency"] == currency]
-    return df
+
+    if len(df) == 0:
+        return df
+
+    # charger scaler
+    scaler = load_scaler(currency)
+
+    if scaler is None:
+        print(f"No scaler found for {currency}, skipping normalization")
+        return df
+
+    try:
+        # normaliser uniquement les FEATURES
+        df_scaled = df.copy()
+
+        # vérifier que toutes les features existent
+        missing = [f for f in FEATURES if f not in df.columns]
+        if missing:
+            print(f"Missing features for scaling: {missing}")
+            return df
+
+        df_scaled[FEATURES] = scaler.transform(df[FEATURES])
+
+        print(f"Production data normalized using scaler for {currency}")
+
+        return df_scaled
+
+    except Exception as e:
+        print(f"Scaling failed for {currency}: {e}")
+        return df
 
 
 def generate_report(currency, workspace):
@@ -84,6 +136,7 @@ def generate_report(currency, workspace):
 
     # evidently 0.7.x API
     from evidently import Report
+    from evidently.core.metric_types import SingleValue
     from evidently.presets import DataDriftPreset
 
     drift_report = Report(metrics=[DataDriftPreset()])
@@ -99,30 +152,45 @@ def generate_report(currency, workspace):
     workspace.add_run(project_id, snapshot)
     print(f"Report saved to workspace for {currency}")
 
-    # Extract drift score from snapshot
+    # Extract drift score
     try:
-        snapshot_dict = snapshot.dict() if hasattr(snapshot, 'dict') else {}
-        metrics = snapshot_dict.get('metrics', [])
-        drift_score = None
-        for m in metrics:
-            result = m.get('result', {})
-            if 'share_of_drifted_columns' in result:
-                drift_score = result['share_of_drifted_columns']
-                break
+
+        drift_scores = []
+
+        metric_results = getattr(snapshot, "metric_results", {})
+
+        print("metric_results count:", len(metric_results))
+
+        for metric_id, metric in metric_results.items():
+
+            if (type(metric) == SingleValue):
+                drift_scores.append(metric.value)
+                print(metric.value)
+
+        drift_score = np.mean(drift_scores)
+
         if drift_score is not None:
+
             print(f"{currency} drift score: {drift_score}")
+
             if drift_score >= DRIFT_THRESHOLD:
+
                 print(f"Drift detected for {currency}, triggering retrain")
+
                 try:
                     r = requests.post(
                         f"{SERVING_API_URL}/retrain/{currency}",
                         timeout=10
                     )
+
                     print("Retrain response:", r.json())
+
                 except Exception as e:
                     print("Retrain trigger failed:", e)
+
         else:
             print(f"{currency} drift score: could not extract")
+
     except Exception as e:
         print(f"Could not extract drift score: {e}")
 
