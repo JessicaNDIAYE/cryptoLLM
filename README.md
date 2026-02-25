@@ -6,6 +6,27 @@ Ce projet met en œuvre un pipeline MLOps de bout en bout pour la prédiction de
 
 Il est basé sur l'architecture de déploiement continu et de monitoring demandée dans le cadre du projet DATA de Polytech Lyon.
 
+Pour le faire fonctionner, il faut : 
+- un .env avec une valeur pour OPENAI_API_KEY dans le dossier agent
+- un .env dans le dossier n8n avec : 
+- SMTP_HOST=
+- SMTP_PORT=
+- SMTP_USERNAME=
+- SMTP_FROM_EMAIL=
+- OPENAI_API_KEY=
+- N8N_WEBHOOK_URL=
+- WEBHOOK_URL=
+- N8N_BASIC_AUTH_ACTIVE=
+- N8N_USER_MANAGEMENT_DISABLED=
+- N8N_DEFAULT_USER_EMAIL=
+- N8N_DEFAULT_USER_PASSWORD=
+- N8N_SKIP_SETUP_WIZARD=
+- N8N_ENCRYPTION_KEY=
+- GENERIC_TIMEZONE=
+
+Une fois lancé avec docker compose up --build
+Il faut aller sur le n8n pour publish le workflow importé
+
 ---
 
 ##  Objectifs du Projet
