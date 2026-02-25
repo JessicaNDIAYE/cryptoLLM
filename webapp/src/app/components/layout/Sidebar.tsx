@@ -1,9 +1,7 @@
 import {
   LayoutDashboard,
   BookOpen,
-  ShieldAlert,
   Bot,
-  Settings,
   LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,15 +12,14 @@ interface SidebarProps {
   onNavigate: (page: string) => void;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  onLogout: () => void;
 }
 
-export function Sidebar({ activePage, onNavigate, isOpen, setIsOpen }: SidebarProps) {
+export function Sidebar({ activePage, onNavigate, isOpen, setIsOpen, onLogout }: SidebarProps) {
   const menuItems = [
     { id: "dashboard", label: "Tableau de bord", icon: LayoutDashboard },
     { id: "glossary", label: "Glossaire", icon: BookOpen },
-    { id: "risks", label: "Analyses de Risque", icon: ShieldAlert },
     { id: "learning", label: "Ask AI", icon: Bot },
-    { id: "settings", label: "Paramètres", icon: Settings },
   ];
 
   return (
@@ -94,8 +91,11 @@ export function Sidebar({ activePage, onNavigate, isOpen, setIsOpen }: SidebarPr
                </Button>
             </div>
             
-            <button className="flex items-center gap-3 mt-8 px-4 text-sm font-medium text-gray-500 hover:text-[#1F1F2E] transition-colors">
-              <LogOut className="h-4 w-4" />
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-3 mt-8 px-4 text-sm font-medium text-gray-500 hover:text-red-600 transition-colors group"
+            >
+              <LogOut className="h-4 w-4 group-hover:text-red-600 transition-colors" />
               Déconnexion
             </button>
           </div>

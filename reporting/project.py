@@ -37,10 +37,11 @@ def create_workspace():
 
     for currency in CURRENCIES:
         project_name = f"{currency}_drift"
-        # Try to find existing project by name
         found = None
+        
+        # Modification ici : on ajoute "if project"
         for project in workspace.list_projects():
-            if project.name == project_name:
+            if project and project.name == project_name: 
                 found = project
                 break
 
@@ -48,7 +49,8 @@ def create_workspace():
             PROJECT_IDS[project_name] = str(found.id)
         else:
             project = workspace.create_project(project_name)
-            project.name = project_name
+            # Pas besoin de redéfinir project.name ici, 
+            # create_project(project_name) le fait déjà.
             project.save()
             PROJECT_IDS[project_name] = str(project.id)
 

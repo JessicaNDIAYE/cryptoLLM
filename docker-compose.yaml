@@ -60,6 +60,11 @@ services:
       - ./data:/app/../data
       - ./serving/artifacts:/app/artifacts
     environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: investuser
+      DB_PASSWORD: investpassword
+      DB_NAME: investbuddy
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/investbuddy-alert
       API_BASE_URL: http://localhost:8080
       RETRAIN_THRESHOLD: "10"
@@ -71,26 +76,27 @@ services:
 
   # ─── n8n : Orchestrateur IA & Notifications ─────────────────────
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: ./n8n
+      dockerfile: Dockerfile
     container_name: investbuddy-n8n
     ports:
       - "5678:5678"
+    env_file:
+      - ./n8n/.env
     environment:
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
-      - WEBHOOK_URL=http://localhost:5678/
-      - GENERIC_TIMEZONE=Europe/Paris
-      - N8N_ENCRYPTION_KEY=investbuddy-secret-key-2025
-      - N8N_SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - N8N_SMTP_PORT=${SMTP_PORT:-587}
-      - N8N_SMTP_USER=${SMTP_USERNAME:-}
-      - N8N_SMTP_PASS=${SMTP_PASSWORD:-}
-      - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL:-alerts@investbuddy.com}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Europe/Paris}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-investbuddy-secret-key-2025}
+      - N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN=true
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      - N8N_SKIP_SETUP_WIZARD=true
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./n8n/preseed:/home/node/.n8n/preseed
     restart: unless-stopped
     networks:
       - investbuddy_net

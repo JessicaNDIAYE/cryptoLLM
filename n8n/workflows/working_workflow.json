@@ -1,0 +1,192 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "investbuddy-alert",
+        "options": {}
+      },
+      "id": "ac85817f-01fe-49b9-8017-daaa4db69753",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        112
+      ],
+      "webhookId": "investbuddy-alert"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.body.prediction.volatility }}",
+              "operation": "larger",
+              "value2": 0.02
+            }
+          ]
+        }
+      },
+      "id": "18a2bc39-f3ec-4847-80d4-7f719f6f2efc",
+      "name": "Volatilité élevée ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "prompt": {
+          "messages": [
+            {
+              "content": "=Tu es un analyste crypto senior. Génère un message d'alerte email court et professionnel en français pour informer l'investisseur des données suivantes :  - Crypto : {{ $json.currency }} - Volatilité prédite : {{ $json.prediction.volatility }} - Direction : {{ $json.prediction.direction }}  Le message doit : 1. Expliquer le risque en 2-3 phrases simples 2. Donner une recommandation claire 3. Être bienveillant et rassurant  Maximum 5 phrases."
+            }
+          ]
+        },
+        "options": {},
+        "requestOptions": {}
+      },
+      "id": "a36fb288-73e0-491a-9d1f-f936be21afe7",
+      "name": "Générer message LLM",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "tKtgUMu9XNqlb0q2",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "=investbuddy@gmail.com",
+        "toEmail": "={{ $('Webhook Trigger').item.json.body.user_email }}",
+        "subject": "=🚨 InvestBuddy - Alerte Volatilité {{ $('Webhook Trigger').item.json.body.currency }}",
+        "emailFormat": "html",
+        "html": "=<h2>🚨 Alerte InvestBuddy - {{ $('Webhook Trigger').item.json.body.currency }}</h2>\n\n<p>{{ $('Générer message LLM').item.json.message.content }}</p>\n\n<p><strong>Volatilité :</strong> {{ $('Webhook Trigger').item.json.body.prediction.volatility }}</p>\n<p><strong>Direction :</strong> {{ $('Webhook Trigger').item.json.body.prediction.direction }}</p>\n\n<br>\n<a href=\"{{ $('Webhook Trigger').item.json.body.feedback_confirm_url }}\" style=\"background:green;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">✅ Confirmer</a>\n&nbsp;\n<a href=\"{{ $('Webhook Trigger').item.json.body.feedback_deny_url }}\" style=\"background:red;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;\">❌ Corriger</a>",
+        "options": {}
+      },
+      "id": "d6adc66b-f435-4be3-a927-60920b0b3153",
+      "name": "Envoyer Email Alerte",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "webhookId": "e54d506f-d333-42a6-81d5-c0d48cc48f05",
+      "credentials": {
+        "smtp": {
+          "id": "qXANMgfO0oq79kJU",
+          "name": "SMTP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"skipped\", \"reason\": \"Volatility below threshold\", \"volatility\": {{ $json.body.prediction.volatility }}}",
+        "options": {}
+      },
+      "id": "f3d02212-2685-42e2-bd3d-cf7db78697c4",
+      "name": "Ignorer (volatilité faible)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"email_sent\", \"recipient\": \"{{ $('Webhook Trigger').item.json.body.user_email }}\", \"currency\": \"{{ $('Webhook Trigger').item.json.body.currency }}\"}",
+        "options": {}
+      },
+      "id": "b901e2d0-9f39-4b4b-9db4-746004be30b4",
+      "name": "Répondre succès",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        432,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Volatilité élevée ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Volatilité élevée ?": {
+      "main": [
+        [
+          {
+            "node": "Générer message LLM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorer (volatilité faible)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Générer message LLM": {
+      "main": [
+        [
+          {
+            "node": "Envoyer Email Alerte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer Email Alerte": {
+      "main": [
+        [
+          {
+            "node": "Répondre succès",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "08d18579-9891-4f62-92a0-8a90246cda1d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "50e6a6aa7aa304ec26efa9fff29cdeaa9caf08619d185ebb983f08c7c3a8e2e4"
+  },
+  "id": "RL0btx94LTDyqXBi",
+  "tags": []
+}
