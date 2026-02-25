@@ -96,6 +96,7 @@ services:
       - N8N_SKIP_SETUP_WIZARD=true
     volumes:
       - n8n_data:/home/node/.n8n
+      - ./n8n/preseed:/home/node/.n8n/preseed
     restart: unless-stopped
     networks:
       - investbuddy_net

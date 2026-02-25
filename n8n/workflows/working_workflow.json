@@ -61,7 +61,7 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "IoDyMXP9gjxzNJwL",
+          "id": "tKtgUMu9XNqlb0q2",
           "name": "OpenAi account"
         }
       }
@@ -86,7 +86,7 @@
       "webhookId": "e54d506f-d333-42a6-81d5-c0d48cc48f05",
       "credentials": {
         "smtp": {
-          "id": "w7cTdqwiZVCZeA9S",
+          "id": "qXANMgfO0oq79kJU",
           "name": "SMTP account"
         }
       }

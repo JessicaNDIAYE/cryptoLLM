@@ -77,43 +77,12 @@ n8n_api() {
     fi
 }
 
-# ─── Step 2: Create OpenAI credential ──────────────────────────────
-echo ""
-echo "🔑 Creating OpenAI credential..."
-OPENAI_CRED=$(cat <<EOF
-{
-    "name": "OpenAi account",
-    "type": "openAiApi",
-    "data": {
-        "apiKey": "${OPENAI_API_KEY}"
-    }
-}
-EOF
-)
-
-n8n_api POST "/credentials" "$OPENAI_CRED"
-echo "   ✅ OpenAI credential created"
-
-# ─── Step 3: Create SMTP credential ────────────────────────────────
-echo ""
-echo "🔑 Creating SMTP credential..."
-SMTP_CRED=$(cat <<EOF
-{
-    "name": "SMTP account",
-    "type": "smtp",
-    "data": {
-        "host": "${SMTP_HOST}",
-        "port": ${SMTP_PORT:-587},
-        "user": "${SMTP_USERNAME}",
-        "password": "${SMTP_PASSWORD}",
-        "secure": true
-    }
-}
-EOF
-)
-
-n8n_api POST "/credentials" "$SMTP_CRED"
-echo "   ✅ SMTP credential created"
+# Import pre-seeded credentials
+if [ -f /home/node/.n8n/preseed/credentials_export.json ]; then
+  echo "📥 Importing pre-seeded credentials..."
+  n8n import:credentials --input=/home/node/.n8n/preseed/credentials_export.json
+  echo "   ✅ Credentials imported"
+fi
 
 # ─── Step 4: Import & Activate via API ──────────────────────────────
 echo ""
