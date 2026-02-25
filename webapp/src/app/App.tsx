@@ -5,6 +5,7 @@ import { DashboardPage } from "@/app/pages/DashboardPage";
 import { AskAIPage } from "@/app/pages/AskAIPage";
 import { CryptoLessons } from "@/app/components/dashboard/CryptoLessons";
 import { LoginPage } from "@/app/pages/LoginPage";
+import { RegisterPage } from "@/app/pages/RegisterPage";
 import { Toaster } from "sonner";
 
 function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, question: string) => void }) {
@@ -23,6 +24,7 @@ function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, questi
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
+  const [showRegister, setShowRegister] = useState(false);
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prefilledQuestion, setPrefilledQuestion] = useState<string | null>(null);
@@ -43,10 +45,32 @@ export default function App() {
     setActivePage("glossary");
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setIsLoggedIn(false);
+    setActivePage("dashboard");
+    setShowRegister(false);
+  };
+
   if (!isLoggedIn) {
+    if (showRegister) {
+      return (
+        <>
+          <RegisterPage
+            onRegisterSuccess={() => setShowRegister(false)}
+            onGoToLogin={() => setShowRegister(false)}
+          />
+          <Toaster position="bottom-right" theme="light" />
+        </>
+      );
+    }
     return (
       <>
-        <LoginPage onLogin={() => setIsLoggedIn(true)} />
+        <LoginPage
+          onLogin={() => setIsLoggedIn(true)}
+          onGoToRegister={() => setShowRegister(true)}
+        />
         <Toaster position="bottom-right" theme="light" />
       </>
     );
@@ -78,10 +102,11 @@ export default function App() {
         onNavigate={handleNavigate} 
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
+        onLogout={handleLogout}
       />
       
       <div className="lg:pl-64 flex flex-col min-h-screen transition-all duration-300">
-        <Topbar onMenuClick={() => setSidebarOpen(true)} />
+        <Topbar onMenuClick={() => setSidebarOpen(true)} onLogout={handleLogout} />
         
         <main className="flex-1 p-6 lg:p-10 overflow-y-auto">
            {renderPage()}

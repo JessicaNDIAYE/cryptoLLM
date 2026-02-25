@@ -3,9 +3,10 @@ import { Eye, EyeOff, User, Lock } from "lucide-react";
 
 interface LoginPageProps {
   onLogin: (user: { email: string; nom: string; prenom: string }) => void;
+  onGoToRegister: () => void;
 }
 
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -131,6 +132,26 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <p className="text-xs text-purple-600">📧 jean.dupont@email.com</p>
           <p className="text-xs text-purple-600">🔑 password123</p>
         </div>
+
+        {/* Séparateur */}
+        <div className="flex items-center gap-3 mt-6">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-xs text-gray-400">ou</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+
+        {/* Bouton inscription */}
+        <button
+          type="button"
+          onClick={onGoToRegister}
+          className="mt-4 w-full border-2 border-[#1F1F2E] text-[#1F1F2E] hover:bg-[#1F1F2E] hover:text-white rounded-xl py-3 text-sm font-bold transition-all hover:scale-[1.01] active:scale-[0.99]"
+        >
+          Créer un compte
+        </button>
+
+        <p className="text-center text-xs text-gray-400 mt-3">
+          Pas encore de compte ? Inscrivez-vous gratuitement.
+        </p>
       </div>
     </div>
   );
