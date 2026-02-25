@@ -54,7 +54,7 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
               user_name: `${user.prenom} ${user.nom}`.trim() || "Investisseur"
             })
           });
-          console.log("📧 Notification envoyée (volatilité élevée)");
+          console.log("Notification envoyée (volatilité élevée)");
         } catch (notifyError) {
           console.error("Erreur notification:", notifyError);
         }
@@ -157,7 +157,7 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
               <GraduationCap className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <h3 className="font-bold text-[#1F1F2E]">📚 Envie d'apprendre ?</h3>
+              <h3 className="font-bold text-[#1F1F2E]">Envie d'apprendre ?</h3>
               <p className="text-sm text-gray-600">Explorez notre glossaire crypto interactif avec l'IA</p>
             </div>
           </div>

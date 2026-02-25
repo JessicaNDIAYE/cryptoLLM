@@ -24,9 +24,9 @@ echo [5/5] Demarrage d'Evidently Monitoring (port 8082)...
 start "InvestBuddy - Evidently" cmd /k "cd /d %~dp0 && python run_evidently_ui.py"
 
 echo.
-echo ========================================
+
 echo   Tous les services sont demarres !
-echo ========================================
+
 echo.
 echo   - n8n            : http://localhost:5678
 echo   - API Prediction : http://localhost:8080/docs

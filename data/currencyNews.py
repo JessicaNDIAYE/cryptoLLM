@@ -14,7 +14,7 @@ def ingest_data():
     client = chromadb.PersistentClient(path=CHROMA_PATH)
     collection = client.get_or_create_collection(name=COLLECTION_NAME)
 
-    print(f"🚀 Début de l'importation de {CSV_FILE}...")
+    print(f" Début de l'importation de {CSV_FILE}...")
 
     # 2. Lecture par morceaux (chunks) pour économiser la RAM
     # chunksize permet de ne pas charger les 248k lignes d'un coup
@@ -43,7 +43,7 @@ def ingest_data():
             
             documents.append(content)
             
-            # Métadonnées pour le filtrage (très important pour la performance)
+            # Métadonnées pour le filtrage 
             metadatas.append({
                 "currencies": str(row['currencies']),
                 "importance": int(row['important']),
@@ -61,7 +61,7 @@ def ingest_data():
         )
         
         if (i + 1) % 10 == 0:
-            print(f"✅ { (i + 1) * BATCH_SIZE } news indexées...")
+            print(f" { (i + 1) * BATCH_SIZE } news indexées...")
 
     print("✨ Ingestion terminée avec succès !")
 

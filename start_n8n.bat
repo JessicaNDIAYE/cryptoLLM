@@ -1,8 +1,7 @@
 @echo off
 chcp 65001 > nul
-echo ================================================
 echo   InvestBuddy n8n - Demarrage Automatique
-echo ================================================
+
 
 :: Demarrer n8n
 echo [1/4] Demarrage de n8n...
@@ -29,9 +28,8 @@ curl -s -X POST http://localhost:5678/rest/owner/setup ^
 echo [4/4] Import du workflow...
 docker exec investbuddy-n8n n8n import:workflow --input=/home/node/.n8n/workflows/working_workflow.json > nul 2>&1
 
-echo ================================================
+
 echo   n8n est pret sur http://localhost:5678
-echo ================================================
 echo.
 echo   Email    : crypto.agentbuddy@gmail.com
 echo   Password : InvestBuddy2024!

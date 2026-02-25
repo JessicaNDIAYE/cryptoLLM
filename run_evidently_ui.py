@@ -3,9 +3,9 @@ import sys
 
 WORKSPACE_DIR = os.path.join(os.path.dirname(__file__), "reporting", "workspace")
 
-print("=" * 50)
+
 print("InvestBuddy - Evidently UI")
-print("=" * 50)
+
 print(f"\nWorkspace: {WORKSPACE_DIR}")
 
 # Check if workspace exists

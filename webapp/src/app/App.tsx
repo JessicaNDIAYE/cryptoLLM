@@ -12,7 +12,7 @@ function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, questi
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">📚 Glossaire Crypto</h1>
+        <h1 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">Glossaire Crypto</h1>
         <p className="text-gray-600 max-w-2xl mx-auto">
           Explorez notre glossaire interactif pour apprendre les concepts clés de la crypto et de la finance.
         </p>

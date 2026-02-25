@@ -18,8 +18,8 @@ Prédiction ML (forte volatilité)
   OpenAI GPT-3.5 → génère message personnalisé
         ↓
   Envoi email HTML avec 2 boutons :
-    ✅ "Confirmer la prédiction"  → GET /feedback?label=confirm&...
-    ❌ "Corriger la prédiction"   → GET /feedback?label=deny&...
+     "Confirmer la prédiction"  → GET /feedback?label=confirm&...
+     "Corriger la prédiction"   → GET /feedback?label=deny&...
         ↓
   Utilisateur clique → prediction-api stocke dans prod_data.csv
         ↓
@@ -28,7 +28,7 @@ Prédiction ML (forte volatilité)
 
 ---
 
-## 🚀 Démarrage Rapide (Configuration Automatique)
+##  Démarrage Rapide (Configuration Automatique)
 
 ### 1. Configurer les variables d'environnement
 
@@ -73,7 +73,7 @@ Le workflow et les credentials sont **automatiquement importés** au démarrage!
 
 ---
 
-## 📧 Configuration SMTP Gmail
+##  Configuration SMTP Gmail
 
 ### Étape 1 : Activer l'authentification à 2 facteurs
 1. Aller sur https://myaccount.google.com/security
@@ -97,7 +97,7 @@ SMTP_FROM_EMAIL=votre-email@gmail.com
 
 ---
 
-## 🔧 Configuration Manuelle (si besoin)
+##  Configuration Manuelle (si besoin)
 
 Si l'auto-configuration ne fonctionne pas, vous pouvez configurer manuellement :
 
@@ -122,7 +122,7 @@ Si l'auto-configuration ne fonctionne pas, vous pouvez configurer manuellement :
 
 ---
 
-## 🧪 Tester le workflow
+##  Tester le workflow
 
 ### Test rapide avec curl
 
@@ -141,11 +141,11 @@ curl -X POST http://localhost:5678/webhook/investbuddy-alert \
 
 ### Résultat attendu
 - Email reçu avec message généré par l'IA
-- Deux boutons : ✅ Confirmer / ❌ Corriger
+- Deux boutons : Confirmer / Corriger
 
 ---
 
-## 📁 Structure des fichiers n8n
+##  Structure des fichiers n8n
 
 ```
 n8n/
@@ -160,7 +160,7 @@ n8n/
 
 ---
 
-## 🔐 Sécurité
+##  Sécurité
 
 ### Variables sensibles
 - **Ne jamais commiter** le fichier `.env` avec de vraies valeurs
@@ -174,7 +174,7 @@ n8n/
 
 ---
 
-## 🛠️ Dépannage
+##  Dépannage
 
 ### n8n ne démarre pas
 ```bash
@@ -205,7 +205,7 @@ docker-compose logs n8n | grep "InvestBuddy"
 
 ---
 
-## 📊 Architecture des endpoints
+## Architecture des endpoints
 
 | Endpoint | Service | Méthode | Description |
 |----------|---------|---------|-------------|
@@ -216,7 +216,7 @@ docker-compose logs n8n | grep "InvestBuddy"
 
 ---
 
-## 🔄 Mise à jour du workflow
+## Mise à jour du workflow
 
 1. Modifier le workflow dans n8n
 2. Exporter : **Workflows** → **Export**

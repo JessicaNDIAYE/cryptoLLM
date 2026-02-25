@@ -33,7 +33,6 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
 coverage/
 
 # IDE
@@ -44,7 +43,7 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Package manager lock files (optional, but user requested)
+# Package manager lock files 
 package-lock.json
 yarn.lock
 

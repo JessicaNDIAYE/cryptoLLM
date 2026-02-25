@@ -30,7 +30,7 @@ def get_financial_context(query, n_results=2):
 
 if __name__ == "__main__":
     # Test de vérité
-    question = "What is a dividend?" # Teste en anglais d'abord pour valider
+    question = "What is a dividend?" 
     context = get_financial_context(question)
     print(f"\nQuestion: {question}")
     print(f"Contextes trouvés: {context}")
