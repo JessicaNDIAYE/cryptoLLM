@@ -60,6 +60,11 @@ services:
       - ./data:/app/../data
       - ./serving/artifacts:/app/artifacts
     environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: investuser
+      DB_PASSWORD: investpassword
+      DB_NAME: investbuddy
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/investbuddy-alert
       API_BASE_URL: http://localhost:8080
       RETRAIN_THRESHOLD: "10"
@@ -92,18 +97,12 @@ services:
       - N8N_SMTP_PASS=${SMTP_PASSWORD:-}
       - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL:-alerts@investbuddy.com}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # Setup wizard and onboarding configuration
-      - N8N_USER_MANAGEMENT_DISABLED=true
-      - N8N_DIAGNOSTICS_ENABLED=false
-      - N8N_PERSONALIZATION_ENABLED=false
-      - N8N_ONBOARDING_FLOW_DISABLED=true
-      - DB_TYPE=sqlite
-      - N8N_RUNNERS_DISABLED=false
-      # Owner account configuration
-      - N8N_DEFAULT_USER_EMAIL=crypto.agentbuddy@gmail.com
-      - N8N_DEFAULT_USER_PASSWORD=InvestBuddy2024!
-      - N8N_DEFAULT_USER_FIRST_NAME=InvestBuddy
-      - N8N_DEFAULT_USER_LAST_NAME=Admin
+      # Default user configuration
+      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-false}
+      - N8N_USER_MANAGEMENT_DISABLED=${N8N_USER_MANAGEMENT_DISABLED:-false}
+      - N8N_DEFAULT_USER_EMAIL=${N8N_DEFAULT_USER_EMAIL:-crypto.agentbuddy@gmail.com}
+      - N8N_DEFAULT_USER_PASSWORD=${N8N_DEFAULT_USER_PASSWORD:-InvestBuddy2024!}
+      - N8N_SKIP_SETUP_WIZARD=${N8N_SKIP_SETUP_WIZARD:-true}
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/workflows:/home/node/.n8n/workflows
