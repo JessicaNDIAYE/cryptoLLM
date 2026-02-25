@@ -61,6 +61,13 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RegisterRequest(BaseModel):
+    nom: str
+    prenom: str
+    email: str
+    password: str
+
+
 def _db_login(email: str, password: str):
     """Connexion MySQL synchrone exécutée dans un thread."""
     conn = mysql.connector.connect(
@@ -83,6 +90,37 @@ def _db_login(email: str, password: str):
     return user
 
 
+def _db_register(nom: str, prenom: str, email: str, password: str):
+    """Inscription MySQL synchrone exécutée dans un thread."""
+    conn = mysql.connector.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "9000")),
+        user=os.getenv("DB_USER", "cryptouser"),
+        password=os.getenv("DB_PASSWORD", "cryptopass"),
+        database=os.getenv("DB_NAME", "cryptodb"),
+        connection_timeout=5,
+    )
+    cursor = conn.cursor(dictionary=True)
+
+    # Vérifier si l'email est déjà utilisé
+    cursor.execute("SELECT email FROM User WHERE email = %s", (email,))
+    existing = cursor.fetchone()
+    if existing:
+        cursor.close()
+        conn.close()
+        return None  # Email déjà pris
+
+    # Insérer le nouvel utilisateur
+    cursor.execute(
+        "INSERT INTO User (nom, prenom, email, mot_de_passe) VALUES (%s, %s, %s, %s)",
+        (nom.strip(), prenom.strip(), email.strip(), password),
+    )
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return {"nom": nom.strip(), "prenom": prenom.strip(), "email": email.strip()}
+
+
 # --- Endpoint /login ---
 @app.post('/login')
 async def login(data: LoginRequest):
@@ -101,6 +139,41 @@ async def login(data: LoginRequest):
         "nom": user["nom"],
         "prenom": user["prenom"],
         "token": f"token-{user['email']}"
+    }
+
+
+# --- Endpoint /register ---
+@app.post('/register', status_code=201)
+async def register(data: RegisterRequest):
+    import asyncio
+
+    # Validations basiques
+    if not data.nom.strip():
+        raise HTTPException(status_code=422, detail="Le nom est requis.")
+    if not data.prenom.strip():
+        raise HTTPException(status_code=422, detail="Le prénom est requis.")
+    if not data.email.strip():
+        raise HTTPException(status_code=422, detail="L'email est requis.")
+    if len(data.password) < 6:
+        raise HTTPException(status_code=422, detail="Le mot de passe doit contenir au moins 6 caractères.")
+
+    loop = asyncio.get_event_loop()
+    try:
+        result = await loop.run_in_executor(
+            _executor, _db_register, data.nom, data.prenom, data.email, data.password
+        )
+    except Exception as e:
+        print(f"❌ DB connection error: {e}")
+        raise HTTPException(status_code=503, detail="Impossible de se connecter à la base de données")
+
+    if result is None:
+        raise HTTPException(status_code=409, detail="Cet email est déjà utilisé.")
+
+    return {
+        "message": "Compte créé avec succès.",
+        "email": result["email"],
+        "nom": result["nom"],
+        "prenom": result["prenom"],
     }
 
 
