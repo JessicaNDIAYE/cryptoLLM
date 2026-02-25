@@ -165,7 +165,6 @@ def generate_report(currency, workspace):
 
             if (type(metric) == SingleValue):
                 drift_scores.append(metric.value)
-                print(metric.value)
 
         drift_score = np.mean(drift_scores)
 

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 echo "Lancement initial du monitoring Evidently..."
+sleep 15
 python project.py
 
 echo "Démarrage de l'UI Evidently..."
