@@ -122,6 +122,7 @@ services:
 
     volumes:
       - ./data:/data
+      - ./serving/artifacts:/serving/artifacts
       - ./reporting/workspace:/app/workspace
 
     environment:
