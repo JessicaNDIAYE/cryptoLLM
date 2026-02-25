@@ -16,6 +16,10 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<{volatility: number, direction: string, analysis: string} | null>(null);
 
+  const storedUser = localStorage.getItem("user");
+  const user = storedUser ? JSON.parse(storedUser) : { email: "user@investbuddy.com", nom: "Investisseur" };
+  
+
   const availableCurrencies = [
     { value: "BTCUSDT", label: "Bitcoin (BTC)" },
     { value: "ETHUSDT", label: "Ethereum (ETH)" },
@@ -46,8 +50,8 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
               currency: selectedCurrency,
               prediction: predData.prediction,
               input_data: predData.input_data,
-              user_email: "user@investbuddy.com",
-              user_name: "Investisseur"
+              user_email: user.email, 
+              user_name: `${user.prenom} ${user.nom}`.trim() || "Investisseur"
             })
           });
           console.log("📧 Notification envoyée (volatilité élevée)");
