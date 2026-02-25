@@ -129,8 +129,8 @@ export function LoginPage({ onLogin, onGoToRegister }: LoginPageProps) {
         {/* Info compte */}
         <div className="mt-6 p-4 bg-purple-50 rounded-xl border border-purple-100">
           <p className="text-xs text-purple-700 font-semibold mb-1">Compte de démo :</p>
-          <p className="text-xs text-purple-600">📧 jean.dupont@email.com</p>
-          <p className="text-xs text-purple-600">🔑 password123</p>
+          <p className="text-xs text-purple-600">jean.dupont@email.com</p>
+          <p className="text-xs text-purple-600">password123</p>
         </div>
 
         {/* Séparateur */}

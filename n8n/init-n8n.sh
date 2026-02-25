@@ -77,6 +77,8 @@ n8n_api() {
     fi
 }
 
+# ─── Step 2: Import Credentials ──────────────────────────────
+
 # Import pre-seeded credentials
 if [ -f /home/node/.n8n/preseed/credentials_export.json ]; then
   echo "📥 Importing pre-seeded credentials..."
@@ -84,25 +86,24 @@ if [ -f /home/node/.n8n/preseed/credentials_export.json ]; then
   echo "   ✅ Credentials imported"
 fi
 
-# ─── Step 4: Import & Activate via API ──────────────────────────────
+# ─── Step 3: Import & Activate via API ──────────────────────────────
 echo ""
 echo "📥 Importing InvestBuddy workflow..."
 
 WORKFLOW_FILE="/home/node/.n8n/workflows/working_workflow.json"
 
 if [ -f "$WORKFLOW_FILE" ]; then
-    # 1. Importation via CLI (toujours ok pour l'import initial)
+    # 1. Importation via CLI
     n8n import:workflow --input="$WORKFLOW_FILE"
     echo "   ✅ Workflow imported via CLI"
 
-    # 2. Récupération de l'ID (votre méthode grep qui fonctionne)
+    # 2. Récupération de l'ID
     WORKFLOW_ID=$(n8n export:workflow --all | grep -B 2 '"name":' | grep '"id"' | head -n 1 | sed 's/.*"id": *"\([^"]*\)".*/\1/')
 
     if [ -n "$WORKFLOW_ID" ]; then
         echo "🚀 Activating workflow ID: $WORKFLOW_ID via API..."
         
-        # 3. Activation via l'API REST (évite le verrouillage de base de données)
-        # On envoie juste {"active": true} à l'endpoint du workflow
+        # 3. Activation via l'API REST
         n8n_api POST "/workflows/$WORKFLOW_ID" "{\"active\": true}"
         
         echo "   ✅ Workflow activation signal sent"

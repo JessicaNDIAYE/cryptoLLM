@@ -1,7 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "c:\Users\hp\OneDrive\Documents\POLYTECH\2025_2026\InvestBuddy\agent\main.py", line 5, in <module>
-    from risk_analyzer import retriever, llm
-  File "c:\Users\hp\OneDrive\Documents\POLYTECH\2025_2026\InvestBuddy\agent\risk_analyzer.py", line 2, in <module>
-    from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-ModuleNotFoundError: No module named 'langchain_openai'

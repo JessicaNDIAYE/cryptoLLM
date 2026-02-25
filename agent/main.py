@@ -91,24 +91,19 @@ async def analyze_risk(request: RiskAnalysisRequest):
             vol_float = float(vol)
             if vol_float > 0.03:
                 risk_level = "critique"
-                risk_emoji = "🚨"
             elif vol_float > 0.02:
                 risk_level = "élevé"
-                risk_emoji = "⚠️"
             elif vol_float > 0.01:
                 risk_level = "modéré"
-                risk_emoji = "⚡"
             else:
                 risk_level = "faible"
-                risk_emoji = "✅"
         except:
             risk_level = "inconnu"
-            risk_emoji = "❓"
 
         prompt = f"""Tu es InvestBuddy, un conseiller financier expert en cryptomonnaies.
 
 CONTEXTE ACTUEL:
-- Niveau de risque: {risk_level} {risk_emoji}
+- Niveau de risque: {risk_level}
 - Volatilité prédite: {vol}
 - Direction prédite: {direc}
 - Fear & Greed Index: {fear_greed}

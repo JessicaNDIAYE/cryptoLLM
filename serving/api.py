@@ -32,7 +32,7 @@ RETRAIN_THRESHOLD = int(os.getenv('RETRAIN_THRESHOLD', '10'))
 N8N_WEBHOOK_URL = os.getenv('N8N_WEBHOOK_URL', 'http://localhost:5678/webhook/investbuddy-alert')
 API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
 
-# --- Variables globales : modèles chargés au démarrage ---
+# Variables globales : modèles chargés au démarrage 
 models = {}
 
 # --- Modèles Pydantic ---
@@ -124,7 +124,7 @@ def _db_register(nom: str, prenom: str, email: str, password: str):
     return {"nom": nom.strip(), "prenom": prenom.strip(), "email": email.strip()}
 
 
-# --- Endpoint /login ---
+#  Endpoint /login 
 @app.post('/login')
 async def login(data: LoginRequest):
     import asyncio
@@ -132,7 +132,7 @@ async def login(data: LoginRequest):
     try:
         user = await loop.run_in_executor(_executor, _db_login, data.email, data.password)
     except Exception as e:
-        print(f"❌ DB connection error: {e}")
+        print(f"DB connection error: {e}")
         raise HTTPException(status_code=503, detail="Impossible de se connecter à la base de données")
     if not user:
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
@@ -145,7 +145,7 @@ async def login(data: LoginRequest):
     }
 
 
-# --- Endpoint /register ---
+# Endpoint /register 
 @app.post('/register', status_code=201)
 async def register(data: RegisterRequest):
     import asyncio
@@ -166,7 +166,7 @@ async def register(data: RegisterRequest):
             _executor, _db_register, data.nom, data.prenom, data.email, data.password
         )
     except Exception as e:
-        print(f"❌ DB connection error: {e}")
+        print(f"DB connection error: {e}")
         raise HTTPException(status_code=503, detail="Impossible de se connecter à la base de données")
 
     if result is None:
@@ -190,16 +190,16 @@ def load_models():
                 'dir': joblib.load(os.path.join(BASE_DIR, 'artifacts', f'{currency}_model_direction.pickle')),
                 'scaler': joblib.load(os.path.join(BASE_DIR, 'artifacts', f'{currency}_scaler.pickle')),
             }
-            print(f"✅ Models loaded for {currency}")
+            print(f"Models loaded for {currency}")
         except Exception as e:
-            print(f"⚠️ Could not load models for {currency}: {e}")
+            print(f"Could not load models for {currency}: {e}")
 
 @app.on_event("startup")
 async def startup_event():
     load_models()
 
 
-# --- Endpoint /predict ---
+# Endpoint /predict
 @app.post('/predict')
 async def predict(data: CurrencyData):
     prefix = data.currency.upper()
@@ -229,7 +229,7 @@ async def predict(data: CurrencyData):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Endpoint /notify : déclenche l'alerte n8n (Human-in-the-Loop) ---
+# Endpoint /notify : déclenche l'alerte n8n (Human-in-the-Loop) 
 @app.post('/notify')
 async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks):
     """
@@ -242,13 +242,12 @@ async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks)
         direc = request.prediction.get('direction', 'unknown')
         currency = request.currency
 
-        print(f"📤 /notify called with:")
+        print(f"/notify called with:")
         print(f"   currency: {currency}")
         print(f"   prediction: {request.prediction}")
         print(f"   input_data: {inp}")
 
         # Construction des paramètres avec encodage URL correct
-        # Valeurs par défaut si input_data est incomplet
         default_input = {
             'Open': 42000, 'High': 43000, 'Low': 41500, 'Close': 42500,
             'Volume': 1000, 'RSI': 55, 'ATR': 0.02, 'MACD': 0.01, 'BB_Width': 0.05, 'Lag_Close_1': 42400
@@ -288,7 +287,7 @@ async def notify_user(request: NotifyRequest, background_tasks: BackgroundTasks)
         background_tasks.add_task(call_n8n_webhook, n8n_payload)
         return {"status": "notification_scheduled", "recipient": request.user_email, "urls_generated": True}
     except Exception as e:
-        print(f"❌ Error in /notify: {e}")
+        print(f"Error in /notify: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -361,10 +360,10 @@ async def receive_feedback(
         with open(PROD_DATA_PATH, 'r') as f:
             line_count = max(0, sum(1 for _ in f) - 1)
 
-        print(f"📝 Feedback saved [{label}] for {prefix}. Total prod rows: {line_count}")
+        print(f"Feedback saved [{label}] for {prefix}. Total prod rows: {line_count}")
 
         action_color = "#4CAF50" if label == "confirm" else "#f44336"
-        action_text = "✅ Prédiction confirmée" if label == "confirm" else "❌ Prédiction corrigée"
+        action_text = "Prédiction confirmée" if label == "confirm" else "Prédiction corrigée"
 
         html = f"""
         <html>
@@ -383,7 +382,7 @@ async def receive_feedback(
         </head>
         <body>
           <div class="card">
-            <div class="logo">📈 InvestBuddy</div>
+            <div class="logo"> InvestBuddy</div>
             <h1>{action_text}</h1>
             <div class="info">
               <p><strong>Crypto :</strong> {currency}</p>
@@ -402,7 +401,7 @@ async def receive_feedback(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# --- Réentraînement automatique ---
+#  Réentraînement automatique 
 def retrain_models(currency: str):
     global models
     try:
@@ -439,9 +438,9 @@ def retrain_models(currency: str):
 
         # Mise à jour des variables globales
         models[currency] = {'vol': model_vol, 'dir': model_dir, 'scaler': scaler}
-        print(f"✅ Retraining done for {currency} on {len(combined)} samples")
+        print(f" Retraining done for {currency} on {len(combined)} samples")
     except Exception as e:
-        print(f"❌ Retraining error for {currency}: {e}")
+        print(f" Retraining error for {currency}: {e}")
 
 @app.post("/retrain/{currency}")
 async def retrain_endpoint(currency: str, background_tasks: BackgroundTasks):

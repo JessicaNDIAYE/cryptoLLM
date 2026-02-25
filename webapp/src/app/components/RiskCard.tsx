@@ -78,7 +78,7 @@ export function RiskCard({currency = "BTCUSDT" ,volatility = 0, direction = "up"
                     animate={{ opacity: 1, y: 0 }}
                     className="text-sm text-left bg-muted/30 p-4 rounded-xl border border-border/20"
                 >
-                    <p className="font-semibold mb-1">🤖 Conseil de l'Agent :</p>
+                    <p className="font-semibold mb-1">Conseil de l'Agent :</p>
                     <p className="text-muted-foreground italic">"{aiAnalysis}"</p>
                 </motion.div>
             )}

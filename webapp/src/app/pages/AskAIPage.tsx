@@ -89,7 +89,7 @@ export function AskAIPage({ initialQuestion }: AskAIPageProps) {
             let aiResponse = "";
 
             if (data.context && data.context.length > 0) {
-                aiResponse = "📚 **Based on my knowledge base:**\n\n";
+                aiResponse = "**Based on my knowledge base:**\n\n";
                 data.context.forEach((text: string) => {
                     aiResponse += `${text}\n\n`;
                 });
@@ -128,7 +128,7 @@ export function AskAIPage({ initialQuestion }: AskAIPageProps) {
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center mx-auto">
                     <Sparkles className="h-8 w-8 text-purple-600" />
                 </div>
-                <h1 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">🎓 Apprentissage IA</h1>
+                <h1 className="text-3xl font-bold text-[#1F1F2E] tracking-tight">Apprentissage IA</h1>
                 <p className="text-gray-600 max-w-2xl mx-auto">
                     Apprenez les concepts clés de la crypto et de la finance grâce à notre assistant IA intelligent.
                 </p>

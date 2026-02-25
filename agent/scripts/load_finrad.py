@@ -17,13 +17,13 @@ target_column = "Sentence" if "Sentence" in column_names else column_names[0]
 print(f" Extraction depuis la colonne : {target_column}")
 
 # Extraction des textes avec filtrage
-# On force la colonne 'definitions' qui est la plus riche
+
 target_column = "definitions" 
 
 # On récupère tout ce qui n'est pas vide
 texts = [item[target_column] for item in ds["train"] if item[target_column] is not None]
 
-# On peut aussi combiner Terme + Définition pour que le RAG soit super précis
+# Terme + Définition pour que le RAG soit super précis
 combined_texts = []
 for item in ds["train"]:
     term = item["terms"]

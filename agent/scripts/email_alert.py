@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 import logging
 from typing import List, Dict, Tuple
 
-# ── Logging ────────────────────────────────────────────────────────────
+#  Logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# ── Configuration ──────────────────────────────────────────────────────
+#  Configuration 
 VOLATILITY_THRESHOLD = float(os.getenv('VOLATILITY_THRESHOLD', '0.02'))
 
 SMTP_CONFIG = {
@@ -58,7 +58,7 @@ SYMBOL_MAPPING = {
     'BNB': 'BNBUSDT', 'LINK': 'LINKUSDT', 'AVAX': 'AVAXUSDT'
 }
 
-# ── Base de données ────────────────────────────────────────────────────
+# Base de données 
 
 def get_db_connection():
     try:
@@ -106,7 +106,7 @@ def get_users_subscribed_to_crypto(crypto_name: str) -> List[Tuple[str, str, str
             connection.close()
 
 
-# ── Binance : calcul de volatilité ────────────────────────────────────
+# Binance : calcul de volatilité 
 
 def get_crypto_data(crypto_name: str) -> Tuple[float, float, Dict, Dict]:
     """
@@ -203,14 +203,14 @@ def send_alert_email(user_email: str, user_name: str, crypto_name: str,
 
     try:
         msg = MIMEMultipart('alternative')
-        msg['Subject'] = f"🚨 InvestBuddy - Alerte Volatilité sur {crypto_name}"
+        msg['Subject'] = f"InvestBuddy - Alerte Volatilité sur {crypto_name}"
         msg['From'] = SMTP_CONFIG['from_email']
         msg['To'] = user_email
 
         direction = prediction.get('direction', 'N/A')
         vol_pred = prediction.get('volatility', volatility / 100)
         dir_color = "#4CAF50" if direction == "up" else "#f44336"
-        dir_emoji = "📈" if direction == "up" else "📉"
+        dir_arrow = "UP" if direction == "up" else "DOWN"
 
         html_content = f"""
         <!DOCTYPE html>
@@ -246,18 +246,18 @@ def send_alert_email(user_email: str, user_name: str, crypto_name: str,
         <body>
           <div class="container">
             <div class="header">
-              <h1>📈 InvestBuddy</h1>
+              <h1>InvestBuddy</h1>
               <p>Alerte de volatilité détectée</p>
             </div>
             <div class="content">
               <p>Bonjour <strong>{user_name}</strong>,</p>
               <div class="alert-box">
-                <strong>⚠️ Forte variation détectée sur {crypto_name}</strong><br>
+                <strong>Forte variation détectée sur {crypto_name}</strong><br>
                 Notre système de surveillance a identifié une activité inhabituelle.
               </div>
 
               <div class="stats">
-                <h3>📊 Statistiques de marché (24h)</h3>
+                <h3>Statistiques de marché (24h)</h3>
                 <div class="stat-row">
                   <span>Prix actuel</span>
                   <strong>${details.get('current_price', 0):,.2f}</strong>
@@ -283,10 +283,10 @@ def send_alert_email(user_email: str, user_name: str, crypto_name: str,
               </div>
 
               <div class="prediction-box">
-                <h3>🤖 Prédiction du modèle IA</h3>
+                <h3>Prédiction du modèle IA</h3>
                 <div class="stat-row">
                   <span>Direction prédite</span>
-                  <strong style="color: {dir_color}">{dir_emoji} {direction.upper()}</strong>
+                  <strong style="color: {dir_color}">{dir_arrow} {direction.upper()}</strong>
                 </div>
                 <div class="stat-row">
                   <span>Volatilité prédite</span>
@@ -295,14 +295,14 @@ def send_alert_email(user_email: str, user_name: str, crypto_name: str,
               </div>
 
               <div class="feedback-section">
-                <h3>🤔 La prédiction vous semble-t-elle correcte ?</h3>
+                <h3>La prédiction vous semble-t-elle correcte ?</h3>
                 <p>Votre retour améliore notre modèle d'IA. Cliquez sur un bouton ci-dessous :</p>
                 <a href="{feedback_confirm_url}" class="btn-confirm">
-                  ✅ Oui, je confirme la prédiction
+                  Oui, je confirme la prédiction
                 </a>
                 <br>
                 <a href="{feedback_deny_url}" class="btn-deny">
-                  ❌ Non, je corrige la prédiction
+                  Non, je corrige la prédiction
                 </a>
                 <p style="font-size: 0.8em; color: #888; margin-top: 15px;">
                   En cliquant, vous aidez InvestBuddy à améliorer ses prédictions.
@@ -333,8 +333,8 @@ Forte variation détectée sur {crypto_name} :
 - Prédiction IA : {direction.upper()} (volatilité prédite : {vol_pred:.6f})
 
 La prédiction vous semble-t-elle correcte ?
-✅ CONFIRMER : {feedback_confirm_url}
-❌ CORRIGER  : {feedback_deny_url}
+CONFIRMER : {feedback_confirm_url}
+CORRIGER  : {feedback_deny_url}
 
 Merci pour votre retour - InvestBuddy
         """
@@ -347,11 +347,11 @@ Merci pour votre retour - InvestBuddy
             server.login(SMTP_CONFIG['username'], SMTP_CONFIG['password'])
             server.send_message(msg)
 
-        logger.info(f"✅ Email envoyé à {user_email} pour {crypto_name}")
+        logger.info(f"Email envoyé à {user_email} pour {crypto_name}")
         return True
 
     except Exception as e:
-        logger.error(f"❌ Erreur envoi email à {user_email}: {e}")
+        logger.error(f"Erreur envoi email à {user_email}: {e}")
         return False
 
 
@@ -383,7 +383,7 @@ def check_volatility_and_alert():
             continue
 
         if volatility > VOLATILITY_THRESHOLD:
-            logger.warning(f"⚠️ {crypto} - Volatilité critique : {volatility:.4f}%")
+            logger.warning(f"{crypto} - Volatilité critique : {volatility:.4f}%")
 
             # Obtenir la prédiction ML
             symbol = SYMBOL_MAPPING.get(crypto, crypto + 'USDT')
@@ -425,7 +425,7 @@ def check_volatility_and_alert():
                 else:
                     alerts_failed += 1
         else:
-            logger.info(f"✅ {crypto} - Volatilité normale : {volatility:.4f}%")
+            logger.info(f"{crypto} - Volatilité normale : {volatility:.4f}%")
 
     logger.info("\n" + "=" * 60)
     logger.info(f"Alertes envoyées : {alerts_sent} | Échecs : {alerts_failed}")
