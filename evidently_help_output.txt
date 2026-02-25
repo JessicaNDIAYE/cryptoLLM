@@ -1,0 +1,8 @@
+STDOUT:
+
+
+STDERR:
+C:\Program Files\Python312\python.exe: No module named evidently.__main__; 'evidently' is a package and cannot be directly executed
+
+
+Return code: 1

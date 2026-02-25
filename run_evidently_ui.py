@@ -1,83 +1,59 @@
 import os
 import sys
-import json
 
-# Add the workspace path
 WORKSPACE_DIR = os.path.join(os.path.dirname(__file__), "reporting", "workspace")
-BASE_DIR = os.path.dirname(__file__)
-DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "data"))
 
 print("=" * 50)
-print("InvestBuddy - Evidently Drift Reports")
+print("InvestBuddy - Evidently UI")
 print("=" * 50)
+print(f"\nWorkspace: {WORKSPACE_DIR}")
+
+# Check if workspace exists
+if os.path.exists(WORKSPACE_DIR):
+    print(f"Workspace directory exists: YES")
+else:
+    print(f"Workspace directory exists: NO - creating...")
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+
+print("\nChecking evidently imports...")
 
 try:
     from evidently.ui.workspace import Workspace
-    
-    # Open the workspace
-    workspace = Workspace.create(WORKSPACE_DIR)
-    
-    print(f"\nWorkspace: {WORKSPACE_DIR}")
-    print(f"\nProjects in workspace:")
-    
-    for project in workspace.list_projects():
-        print(f"  - {project.name} (ID: {project.id})")
-    
-    print("\n" + "=" * 50)
-    print("Attempting to start Evidently UI...")
-    print("=" * 50)
-    
-    # Try different import paths for evidently UI
-    try:
-        from evidently.ui.app import app
-        import uvicorn
-        print("\nStarting server on http://localhost:8082")
-        uvicorn.run(app, host="0.0.0.0", port=8082)
-    except ImportError:
-        try:
-            from evidently.ui.server import run_server
-            print("\nStarting server on http://localhost:8082")
-            run_server(workspace, host="0.0.0.0", port=8082)
-        except ImportError:
-            try:
-                from evidently.ui.ui import run_ui
-                print("\nStarting server on http://localhost:8082")
-                run_ui(workspace, host="0.0.0.0", port=8082)
-            except ImportError:
-                print("\nEvidently UI server not available in this version.")
-                print("Generating HTML report instead...")
-                
-                # Generate HTML report
-                from evidently.report import Report
-                from evidently.metric_preset import DataDriftPreset
-                import pandas as pd
-                
-                FEATURES = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR', 'VolumeChange', 'SMA_20', 'EMA_50']
-                
-                # Load data
-                ref = pd.read_csv(os.path.join(DATA_DIR, "BTCUSDT_ref_data.csv"))
-                prod = pd.read_csv(os.path.join(DATA_DIR, "prod_data.csv"))
-                
-                # Create drift report
-                drift_report = Report(metrics=[DataDriftPreset()])
-                drift_report.run(reference_data=ref[FEATURES], current_data=prod[FEATURES])
-                
-                # Save as HTML
-                html_path = os.path.join(BASE_DIR, "drift_report.html")
-                drift_report.save_html(html_path)
-                
-                print(f"\nHTML report saved to: {html_path}")
-                print("Open this file in your browser to view the drift metrics.")
-                
-                # Open in browser
-                import webbrowser
-                webbrowser.open(f"file://{html_path}")
-                
+    print("OK: evidently.ui.workspace.Workspace")
 except ImportError as e:
-    print(f"\nImport error: {e}")
-    print("\nEvidently UI is not available in this version.")
-    
-except Exception as e:
-    print(f"\nError: {e}")
-    import traceback
-    traceback.print_exc()
+    print(f"FAIL: evidently.ui.workspace.Workspace - {e}")
+    sys.exit(1)
+
+try:
+    from evidently.ui.app import app
+    print("OK: evidently.ui.app.app")
+except ImportError as e:
+    print(f"FAIL: evidently.ui.app.app - {e}")
+    print("\nTrying alternative import...")
+    try:
+        from evidently.ui.server import run_server
+        print("OK: evidently.ui.server.run_server")
+        print("\nStarting Evidently UI on http://localhost:8082")
+        run_server(host="0.0.0.0", port=8082)
+        sys.exit(0)
+    except ImportError as e2:
+        print(f"FAIL: evidently.ui.server.run_server - {e2}")
+
+try:
+    import uvicorn
+    print("OK: uvicorn")
+except ImportError as e:
+    print(f"FAIL: uvicorn - {e}")
+    sys.exit(1)
+
+print("\nStarting Evidently UI on http://localhost:8082")
+print("=" * 50)
+
+# Create workspace
+workspace = Workspace.create(WORKSPACE_DIR)
+
+# Run with uvicorn
+import evidently.ui.config as config
+config.WORKSPACE = workspace
+
+uvicorn.run(app, host="0.0.0.0", port=8082)
