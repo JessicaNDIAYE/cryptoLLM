@@ -11,6 +11,10 @@ import requests
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestRegressor
 from urllib.parse import urlencode
+import mysql.connector
+from concurrent.futures import ThreadPoolExecutor
+
+_executor = ThreadPoolExecutor(max_workers=4)
 
 app = FastAPI(title='crypto prediction API')
 
@@ -51,6 +55,53 @@ class NotifyRequest(BaseModel):
     input_data: dict
     user_email: str
     user_name: str = "Investisseur"
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+def _db_login(email: str, password: str):
+    """Connexion MySQL synchrone exécutée dans un thread."""
+    conn = mysql.connector.connect(
+        host=os.getenv("DB_HOST", "localhost"),
+        port=int(os.getenv("DB_PORT", "9000")),
+        user=os.getenv("DB_USER", "cryptouser"),
+        password=os.getenv("DB_PASSWORD", "cryptopass"),
+        database=os.getenv("DB_NAME", "cryptodb"),
+        connection_timeout=5,
+    )
+    cursor = conn.cursor(dictionary=True)
+    # Requête préparée pour éviter les injections SQL
+    cursor.execute(
+        "SELECT nom, prenom, email FROM User WHERE email = %s AND mot_de_passe = %s",
+        (email, password)
+    )
+    user = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return user
+
+
+# --- Endpoint /login ---
+@app.post('/login')
+async def login(data: LoginRequest):
+    import asyncio
+    loop = asyncio.get_event_loop()
+    try:
+        user = await loop.run_in_executor(_executor, _db_login, data.email, data.password)
+    except Exception as e:
+        print(f"❌ DB connection error: {e}")
+        raise HTTPException(status_code=503, detail="Impossible de se connecter à la base de données")
+    if not user:
+        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    return {
+        "success": True,
+        "email": user["email"],
+        "nom": user["nom"],
+        "prenom": user["prenom"],
+        "token": f"token-{user['email']}"
+    }
 
 
 # --- Chargement des modèles au démarrage ---

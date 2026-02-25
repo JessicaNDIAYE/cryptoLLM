@@ -4,6 +4,7 @@ import { Topbar } from "@/app/components/layout/Topbar";
 import { DashboardPage } from "@/app/pages/DashboardPage";
 import { AskAIPage } from "@/app/pages/AskAIPage";
 import { CryptoLessons } from "@/app/components/dashboard/CryptoLessons";
+import { LoginPage } from "@/app/pages/LoginPage";
 import { Toaster } from "sonner";
 
 function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, question: string) => void }) {
@@ -21,6 +22,7 @@ function GlossaryPage({ onLessonClick }: { onLessonClick: (topic: string, questi
 }
 
 export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem("token"));
   const [activePage, setActivePage] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [prefilledQuestion, setPrefilledQuestion] = useState<string | null>(null);
@@ -40,6 +42,15 @@ export default function App() {
   const handleLearnMoreClick = () => {
     setActivePage("glossary");
   };
+
+  if (!isLoggedIn) {
+    return (
+      <>
+        <LoginPage onLogin={() => setIsLoggedIn(true)} />
+        <Toaster position="bottom-right" theme="light" />
+      </>
+    );
+  }
 
   const renderPage = () => {
     switch (activePage) {

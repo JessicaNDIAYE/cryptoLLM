@@ -92,12 +92,18 @@ services:
       - N8N_SMTP_PASS=${SMTP_PASSWORD:-}
       - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL:-alerts@investbuddy.com}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # Default user configuration
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-false}
-      - N8N_USER_MANAGEMENT_DISABLED=${N8N_USER_MANAGEMENT_DISABLED:-false}
-      - N8N_DEFAULT_USER_EMAIL=${N8N_DEFAULT_USER_EMAIL:-crypto.agentbuddy@gmail.com}
-      - N8N_DEFAULT_USER_PASSWORD=${N8N_DEFAULT_USER_PASSWORD:-InvestBuddy2024!}
-      - N8N_SKIP_SETUP_WIZARD=${N8N_SKIP_SETUP_WIZARD:-true}
+      # Setup wizard and onboarding configuration
+      - N8N_USER_MANAGEMENT_DISABLED=true
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_ONBOARDING_FLOW_DISABLED=true
+      - DB_TYPE=sqlite
+      - N8N_RUNNERS_DISABLED=false
+      # Owner account configuration
+      - N8N_DEFAULT_USER_EMAIL=crypto.agentbuddy@gmail.com
+      - N8N_DEFAULT_USER_PASSWORD=InvestBuddy2024!
+      - N8N_DEFAULT_USER_FIRST_NAME=InvestBuddy
+      - N8N_DEFAULT_USER_LAST_NAME=Admin
     volumes:
       - n8n_data:/home/node/.n8n
       - ./n8n/workflows:/home/node/.n8n/workflows
