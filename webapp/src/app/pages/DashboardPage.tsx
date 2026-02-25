@@ -40,8 +40,11 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 currency: selectedCurrency,
+                volatility: 0.0123,
                 Open: 42000, High: 43000, Low: 41500, Close: 42500,
-                Volume: 1000, RSI: 55, ATR: 0.02, MACD: 0.01, BB_Width: 0.05, Lag_Close_1: 42400
+                Volume: 1000, RSI: 55, ATR: 0.02, MACD: 0.01, BB_Width: 0.05, Lag_Close_1: 42400, net_sentiment: 0.5,
+                toxic: 0.0,
+                important: 1.0
             })
       });
       const predData = await predRes.json();
