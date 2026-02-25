@@ -44,6 +44,9 @@ class CurrencyData(BaseModel):
     MACD: float 
     BB_Width: float 
     Lag_Close_1: float
+    net_sentiment: float
+    toxic: float
+    important: float 
 
 class NotifyRequest(BaseModel):
     currency: str
@@ -82,7 +85,7 @@ async def predict(data: CurrencyData):
         m = models[prefix]
         input_data = [[
             data.Open, data.High, data.Low, data.Close, data.Volume,
-            data.RSI, data.ATR, data.MACD, data.BB_Width, data.Lag_Close_1
+            data.RSI, data.ATR, data.MACD, data.BB_Width, data.Lag_Close_1, data.net_sentiment, data.toxic, data.important
         ]]
         input_scaled = m['scaler'].transform(input_data)
         vol_pred = float(m['vol'].predict(input_scaled)[0])
@@ -190,6 +193,9 @@ async def receive_feedback(
     MACD: float,
     BB_Width: float,
     Lag_Close_1: float,
+    net_sentiment: float,
+    toxic: float,
+    important: float,
     background_tasks: BackgroundTasks
 ):
     """
@@ -199,8 +205,8 @@ async def receive_feedback(
     """
     try:
         prefix = currency.upper()
-        columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1']
-        raw_values = [Open, High, Low, Close, Volume, RSI, ATR, MACD, BB_Width, Lag_Close_1]
+        columns = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1', 'net_sentiment', 'toxic', 'important']
+        raw_values = [Open, High, Low, Close, Volume, RSI, ATR, MACD, BB_Width, Lag_Close_1, net_sentiment, toxic, important]
 
         # Normaliser avec le scaler existant
         if prefix in models:
@@ -288,7 +294,7 @@ def retrain_models(currency: str):
 
         combined = pd.concat([ref_df, prod_df], ignore_index=True).dropna()
 
-        cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1']
+        cols = ['Open', 'High', 'Low', 'Close', 'Volume', 'RSI', 'ATR','MACD', 'BB_Width', 'Lag_Close_1', 'net_sentiment', 'toxic', 'important']
         X = combined[cols]
         y_vol = combined['target_vol']
         y_dir = combined['target_dir']
