@@ -115,37 +115,33 @@ EOF
 n8n_api POST "/credentials" "$SMTP_CRED"
 echo "   ✅ SMTP credential created"
 
-# ─── Step 4: Import workflow ────────────────────────────────────────
+# ─── Step 4: Import & Activate via API ──────────────────────────────
 echo ""
 echo "📥 Importing InvestBuddy workflow..."
 
-if [ -f /home/node/.n8n/workflows/working_workflow.json ]; then
-    WORKFLOW=$(cat /home/node/.n8n/workflows/working_workflow.json)
+WORKFLOW_FILE="/home/node/.n8n/workflows/working_workflow.json"
 
-    IMPORT_RESULT=$(echo "$WORKFLOW" | wget -qO- \
-        --header="Content-Type: application/json" \
-        --header="Cookie: ${OWNER_COOKIE}" \
-        --post-data=@- \
-        "http://localhost:5678/api/v1/workflows" 2>/dev/null || true)
+if [ -f "$WORKFLOW_FILE" ]; then
+    # 1. Importation via CLI (toujours ok pour l'import initial)
+    n8n import:workflow --input="$WORKFLOW_FILE"
+    echo "   ✅ Workflow imported via CLI"
 
-    WORKFLOW_ID=$(echo "$IMPORT_RESULT" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+    # 2. Récupération de l'ID (votre méthode grep qui fonctionne)
+    WORKFLOW_ID=$(n8n export:workflow --all | grep -B 2 '"name":' | grep '"id"' | head -n 1 | sed 's/.*"id": *"\([^"]*\)".*/\1/')
 
     if [ -n "$WORKFLOW_ID" ]; then
-        echo "   ✅ Workflow imported with ID: $WORKFLOW_ID"
-
-        echo ""
-        echo "🚀 Activating workflow..."
-        wget -qO- \
-            --header="Content-Type: application/json" \
-            --header="Cookie: ${OWNER_COOKIE}" \
-            --post-data='{"active": true}' \
-            "http://localhost:5678/api/v1/workflows/$WORKFLOW_ID" 2>/dev/null || true
-        echo "   ✅ Workflow activated!"
+        echo "🚀 Activating workflow ID: $WORKFLOW_ID via API..."
+        
+        # 3. Activation via l'API REST (évite le verrouillage de base de données)
+        # On envoie juste {"active": true} à l'endpoint du workflow
+        n8n_api POST "/workflows/$WORKFLOW_ID" "{\"active\": true}"
+        
+        echo "   ✅ Workflow activation signal sent"
     else
-        echo "   ⚠️ Could not import workflow automatically"
+        echo "   ⚠️ Workflow ID not found"
     fi
 else
-    echo "   ⚠️ Workflow file not found, skipping import"
+    echo "   ⚠️ Workflow file not found"
 fi
 
 echo ""
