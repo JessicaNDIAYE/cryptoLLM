@@ -1,6 +1,3 @@
-import { LearningProgress } from "@/app/components/dashboard/LearningProgress";
-import { MarketSentiment } from "@/app/components/dashboard/MarketSentiment";
-import { TopETFs } from "@/app/components/dashboard/TopETFs";
 import { ETFAnalysis } from "@/app/components/dashboard/ETFAnalysis";
 import { Button } from "@/app/components/ui/button";
 import React, { useState } from "react";
@@ -180,22 +177,6 @@ export function DashboardPage({ onLearnMoreClick }: DashboardPageProps) {
             direction={results?.direction}
             aiAnalysis={results?.analysis}
          />
-      </section>
-
-      {/* Middle Section Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-6 xl:grid-cols-12 gap-8 items-start">
-         <div className="md:col-span-3 xl:col-span-4 flex flex-col gap-8 h-full">
-            <div className="flex-1">
-               <LearningProgress />
-            </div>
-            <div className="flex-1">
-               <MarketSentiment />
-            </div>
-         </div>
-
-         <div className="md:col-span-6 xl:col-span-4 h-full">
-            <TopETFs />
-         </div>
       </section>
 
       {/* Bottom Grid - Analysis */}
