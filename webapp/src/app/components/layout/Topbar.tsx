@@ -1,12 +1,14 @@
-import { Search, Bell, Wallet, User } from "lucide-react";
+import { Search, Bell, Wallet } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
+import { ProfileButton } from "@/app/components/layout/ProfileButton";
 
 interface TopbarProps {
   onMenuClick: () => void;
+  onLogout: () => void;
 }
 
-export function Topbar({ onMenuClick }: TopbarProps) {
+export function Topbar({ onMenuClick, onLogout }: TopbarProps) {
   return (
     <header className="h-20 bg-[#F9F9F7]/80 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between px-6 lg:px-10 transition-all">
       <div className="flex items-center gap-4 flex-1">
@@ -42,7 +44,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
             />
          </div>
 
-        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-[#1F1F2E] rounded-full hover:bg-white/50">
+        <Button variant="ghost" size="icon" className="relative text-gray-500 hover:text-[#1F1F2E] rounded-full hover:bg-white/50">
           <Bell className="h-5 w-5" />
           <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 bg-red-500 rounded-full border border-[#F9F9F7]" />
         </Button>
@@ -51,6 +53,9 @@ export function Topbar({ onMenuClick }: TopbarProps) {
           <Wallet className="h-3.5 w-3.5" />
           Connect Wallet
         </Button>
+
+        {/* Profil + Déconnexion */}
+        <ProfileButton onLogout={onLogout} />
       </div>
     </header>
   );

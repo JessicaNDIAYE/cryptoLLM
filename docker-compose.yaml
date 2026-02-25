@@ -60,6 +60,11 @@ services:
       - ./data:/app/../data
       - ./serving/artifacts:/app/artifacts
     environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: investuser
+      DB_PASSWORD: investpassword
+      DB_NAME: investbuddy
       N8N_WEBHOOK_URL: http://n8n:5678/webhook/investbuddy-alert
       API_BASE_URL: http://localhost:8080
       RETRAIN_THRESHOLD: "10"
@@ -71,7 +76,9 @@ services:
 
   # ─── n8n : Orchestrateur IA & Notifications ─────────────────────
   n8n:
-    image: n8nio/n8n:latest
+    build:
+      context: ./n8n
+      dockerfile: Dockerfile
     container_name: investbuddy-n8n
     ports:
       - "5678:5678"
@@ -85,32 +92,14 @@ services:
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Europe/Paris}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY:-investbuddy-secret-key-2025}
       - N8N_SKIP_WEBHOOK_DEREGISTRATION_SHUTDOWN=true
-      - N8N_WORKFLOW_FOLDER=/home/node/.n8n/workflows
-      - N8N_SMTP_HOST=${SMTP_HOST:-smtp.gmail.com}
-      - N8N_SMTP_PORT=${SMTP_PORT:-587}
-      - N8N_SMTP_USER=${SMTP_USERNAME:-}
-      - N8N_SMTP_PASS=${SMTP_PASSWORD:-}
-      - N8N_SMTP_SENDER=${SMTP_FROM_EMAIL:-alerts@investbuddy.com}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # Default user configuration
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_BASIC_AUTH_ACTIVE:-false}
-      - N8N_USER_MANAGEMENT_DISABLED=${N8N_USER_MANAGEMENT_DISABLED:-false}
-      - N8N_DEFAULT_USER_EMAIL=${N8N_DEFAULT_USER_EMAIL:-crypto.agentbuddy@gmail.com}
-      - N8N_DEFAULT_USER_PASSWORD=${N8N_DEFAULT_USER_PASSWORD:-InvestBuddy2024!}
-      - N8N_SKIP_SETUP_WIZARD=${N8N_SKIP_SETUP_WIZARD:-true}
+      - N8N_USER_MANAGEMENT_DISABLED=false
+      - N8N_SKIP_SETUP_WIZARD=true
     volumes:
       - n8n_data:/home/node/.n8n
-      - ./n8n/workflows:/home/node/.n8n/workflows
-      - ./n8n/init-n8n.sh:/docker-entrypoint-init.d/init-n8n.sh:ro
+      - ./n8n/preseed:/home/node/.n8n/preseed
     restart: unless-stopped
     networks:
       - investbuddy_net
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5678/healthz || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
 
   # ─── Frontend Web (Next.js / React + Vite) ──────────────────────
   webapp:
