@@ -14,7 +14,7 @@ def update_crypto_data():
 
     for currency in currencies:
         # Récupération des données historiques
-        klines = client.get_historical_klines(currency, Client.KLINE_INTERVAL_6HOUR, "1 Jan, 2025")
+        klines = client.get_historical_klines(currency, Client.KLINE_INTERVAL_6HOUR, "1 Jan, 2023")
         df = pd.DataFrame(klines, columns=['Open time', 'Open', 'High', 'Low', 'Close', 'Volume',
                                      'Close time', 'Quote asset volume', 'Number of trades',
                                         'Taker buy base asset volume', 'Taker buy quote asset volume', 'Ignore'])
