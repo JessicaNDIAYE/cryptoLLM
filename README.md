@@ -1,129 +1,155 @@
-# cryptoLLM
+# InvestBuddy — Plateforme MLOps Crypto
 
-#  Projet MLOps : Explication et Prédiction de Crypto & Agent Conseiller
-
-Ce projet met en œuvre un pipeline MLOps de bout en bout pour la prédiction de la volatilité des actifs crypto (BTC/ETH, etc.) et intègre un Agent IA intelligent pour la gestion des risques et le feedback automatisé (Human-in-the-Loop).
-
-Il est basé sur l'architecture de déploiement continu et de monitoring demandée dans le cadre du projet DATA de Polytech Lyon.
-
-Pour le faire fonctionner, il faut : 
-- un .env avec une valeur pour OPENAI_API_KEY dans le dossier agent
-- un .env dans le dossier n8n avec : 
-- SMTP_HOST=
-- SMTP_PORT=
-- SMTP_USERNAME=
-- SMTP_FROM_EMAIL=
-- OPENAI_API_KEY=
-- N8N_WEBHOOK_URL=
-- WEBHOOK_URL=
-- N8N_BASIC_AUTH_ACTIVE=
-- N8N_USER_MANAGEMENT_DISABLED=
-- N8N_DEFAULT_USER_EMAIL=
-- N8N_DEFAULT_USER_PASSWORD=
-- N8N_SKIP_SETUP_WIZARD=
-- N8N_ENCRYPTION_KEY=
-- GENERIC_TIMEZONE=
-
-Une fois lancé avec docker compose up --build
-Il faut aller sur le n8n pour publish le workflow importé
+**InvestBuddy** est un écosystème financier intelligent conçu pour démocratiser l'investissement crypto tout en maîtrisant les risques. Il combine un moteur de prédiction ML, un agent IA pédagogique (RAG), un pipeline MLOps complet et une boucle Human-in-the-Loop.
 
 ---
 
-##  Objectifs du Projet
+## Architecture
 
-1.  **Prédiction de Volatilité :** Développer et déployer un modèle de série temporelle capable de prédire les périodes de forte volatilité sur un horizon de 1 à 2 jours.
-2.  **MLOps Complet :** Mettre en place un pipeline d'entraînement, de déploiement et de monitoring automatisé et conteneurisé.
-3.  **Agent IA Conseiller :** Intégrer un Agent IA (orchestrateur + LLM) pour analyser les prédictions et les événements du marché, et suggérer des ajustements de stratégie (conseil ou tâche automatique).
-4.  **Boucle Human-in-the-Loop :** Créer un mécanisme pour recueillir le feedback utilisateur (ou la validation du conseil de l'Agent) et l'utiliser pour ré-entraîner et améliorer continuellement le modèle.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Docker Compose                           │
+│                                                                 │
+│  ┌──────────┐  ┌──────────────┐  ┌──────┐  ┌───────────────┐  │
+│  │  webapp  │  │ prediction-  │  │agent │  │   evidently   │  │
+│  │ React/   │  │    api       │  │ api  │  │  (monitoring) │  │
+│  │  Vite    │  │  FastAPI     │  │FastA │  │               │  │
+│  │ :5173    │  │   :8080      │  │:4000 │  │    :8082      │  │
+│  └────┬─────┘  └──────┬───────┘  └──┬───┘  └───────┬───────┘  │
+│       │               │              │               │          │
+│       └───────────────┴──────────────┴───────────────┘          │
+│                              │                                  │
+│                    ┌─────────┴──────────┐                       │
+│                    │      mysql :3306   │                       │
+│                    └────────────────────┘                       │
+│                                                                 │
+│  ┌──────────────────────────────────────┐                       │
+│  │         n8n :5678                    │                       │
+│  │  (orchestrateur + emails de feedback)│                       │
+│  └──────────────────────────────────────┘                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Services
+
+| Service | Port | Rôle |
+|---|---|---|
+| `webapp` | 5173 | Frontend React + Vite (dashboard, chat, prédictions) |
+| `prediction-api` | 8080 | API FastAPI : prédiction ML, auth, feedback, réentraînement |
+| `agent-api` | 4000 | API FastAPI : RAG financier, analyse de risque (GPT-4o-mini) |
+| `evidently` | 8082 | Monitoring de data drift (Evidently AI) |
+| `n8n` | 5678 | Orchestrateur : envoi d'emails Human-in-the-Loop |
+| `mysql` | 3306 | Base de données utilisateurs |
 
 ---
 
-## 🛠️ Stack Technologique
+## Fonctionnalités
 
-| Catégorie             | Outils                   | Rôle dans le Projet                                      |
-| :-------------------- | :----------------------- | :------------------------------------------------------- |
-| **Import de Données** | Python, `python-binance` | Récupération des données historiques (OHLCV) de Binance. |
+### Prédiction ML (`prediction-api`)
+- Modèles RandomForest entraînés sur données OHLCV + indicateurs techniques (RSI, ATR, SMA, EMA)
+- Prédiction de la **volatilité** et de la **direction** (hausse/baisse) pour BTC et ETH
+- Endpoint `/predict` — prédiction en temps réel
+- Endpoint `/notify` — envoi d'un email de feedback via n8n
+- Endpoint `/feedback` — collecte du retour utilisateur (Human-in-the-Loop) dans `prod_data.csv`
+- Endpoint `/retrain/{currency}` — réentraînement automatique déclenché par drift ou seuil de feedback
+
+### Agent IA RAG (`agent-api`)
+- Base vectorielle FAISS alimentée par actualités crypto et dataset FinRAD
+- Embeddings OpenAI (`text-embedding-3-small`) + LLM `gpt-4o-mini`
+- Endpoint `/ask` — questions sur la finance crypto
+- Endpoint `/analyzeRisk` — analyse de risque enrichie par : Fear & Greed Index, Funding Rate Binance, actualités récentes et prédiction ML
+
+### Monitoring (`evidently`)
+- Détection de **data drift** entre données de référence et données de production
+- Trigger automatique de réentraînement si le score de drift dépasse le seuil (0.3)
+- Dashboard Evidently accessible sur `:8082`
+
+### Human-in-the-Loop (`n8n`)
+- L'utilisateur reçoit un email après une prédiction importante
+- Deux liens : **Confirmer** ou **Corriger** la prédiction
+- Le choix est stocké dans `prod_data.csv` et sert à améliorer le modèle
 
 ---
 
-##  Architecture du Projet
-
-L'architecture est basée sur une série de services conteneurisés communiquant via un réseau Docker Compose (`prod_net`).
-
-**Composants Clés :**
-
-- **`serving`** : Contient l'API FastAPI et les modèles sérialisés (artefacts).
-- **`webapp`** : Contient l'application Streamlit pour l'interface utilisateur.
-- **`reporting`** : Contient le script Evidently pour le monitoring et la détection de dérive.
-- **`data`** : Contient les données de référence (`ref_data.csv`) et les données de production/feedback (`prod_data.csv`).
-
----
-
-##  Démarrage Rapide
+## Démarrage
 
 ### Prérequis
+- Docker et Docker Compose installés
 
-1. ]**Docker & Docker Compose :** Assurez-vous d'avoir installé Docker Desktop.
-2. **Clés Binance (Optionnel) :** Non requises pour les données publiques, mais peuvent être nécessaires selon le volume d'appels.
+### Configuration
 
-### 1. Préparation du Modèle (Entraînement Initial)
+**`agent/.env`**
+```
+OPENAI_API_KEY=sk-...
+```
 
-Exécutez le scripts dans le dossier `data` pour :
+**`n8n/.env`**
+```
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USERNAME=
+SMTP_FROM_EMAIL=
+OPENAI_API_KEY=
+N8N_WEBHOOK_URL=
+WEBHOOK_URL=
+N8N_BASIC_AUTH_ACTIVE=
+N8N_USER_MANAGEMENT_DISABLED=
+N8N_DEFAULT_USER_EMAIL=
+N8N_DEFAULT_USER_PASSWORD=
+N8N_SKIP_SETUP_WIZARD=
+N8N_ENCRYPTION_KEY=
+GENERIC_TIMEZONE=Europe/Paris
+```
 
-1.  Récupérer les données historiques via l'API Binance.
+### Lancement
 
+```bash
+docker compose up --build
+```
 
-###  Description
+Après le démarrage, aller sur `http://localhost:5678` pour **activer le workflow n8n** importé automatiquement.
 
-**InvestBuddy** est un écosystème financier intelligent conçu pour démocratiser l'investissement crypto tout en maîtrisant les risques. Le projet repose sur une architecture **MLOps industrielle** qui combine trois piliers :
+---
 
-1. Un **moteur prédictif** qui analyse la volatilité des marchés en temps réel pour optimiser la gestion de portefeuille.
-2. Un **Agent IA pédagogique** qui utilise le RAG (Retrieval Augmented Generation) pour traduire des concepts financiers complexes en langage simple et accompagner l'utilisateur.
-3. Un **pipeline de déploiement continu** qui surveille les performances du modèle, collecte le feedback humain, et déclenche automatiquement des réentraînements pour s'adapter aux changements brutaux du marché.
+## Structure du projet
+
+```
+cryptoLLM/
+├── agent/                  # Agent RAG (FastAPI, FAISS, OpenAI)
+│   ├── main.py             # API /ask et /analyzeRisk
+│   ├── risk_analyzer.py    # Retriever FAISS + LLM
+│   ├── search_engine.py    # Recherche dans ChromaDB
+│   ├── rag_edu_logic.py    # Logique RAG éducative
+│   └── data/education/     # Dataset FinRAD
+├── serving/                # API de prédiction ML (FastAPI)
+│   ├── api.py              # /predict, /notify, /feedback, /retrain
+│   ├── artifacts/          # Modèles et scalers sérialisés (.pickle)
+│   └── data/               # Données de référence par devise
+├── webapp/                 # Frontend React + Vite + TailwindCSS
+│   └── src/app/
+│       ├── pages/          # Dashboard, AskAI, Login, Register
+│       └── components/     # ChatInterface, RiskCard, MagicAnalysis...
+├── reporting/              # Monitoring Evidently AI
+│   └── project.py          # Génération rapports + trigger réentraînement
+├── n8n/                    # Orchestrateur n8n
+│   └── workflows/          # Workflow email Human-in-the-Loop
+├── bd/
+│   └── init.sql            # Schéma MySQL (table User)
+├── data/                   # Données OHLCV BTC/ETH + prod_data.csv
+└── docker-compose.yaml
+```
 
 ---
 
-###  To-Do List détaillée du Projet
+## Stack Technologique
 
-####  Étape 1 : Fondations & Agent Pédagogique (RAG) — **[x]**
-
-- [x] ~~Ingestion de données financières (Dataset FinRAD)~~
-- [x] ~~Mise en place de ChromaDB (Base vectorielle)~~
-- [x] ~~Recherche sémantique avec OpenAI Embeddings~~
-- [x] ~~API de Serving initiale avec FastAPI~~
-- [x] ~~Interface Chat Next.js avec effet Typewriter~~
-- [x] ~~Correction des erreurs CORS et intégration Frontend/Backend~~
-
-#### Étape 2 : Intelligence Artificielle & Prédiction ML — **[À FAIRE ]**
-
-* [x] ~~**Collecte de données de marché** : Script d'extraction via API Binance/YFinance (Prix OHLCV).~~
-* [ ] **Feature Engineering** : Calcul des indicateurs techniques (RSI, Volatilité, Moyennes Mobiles).
-* [ ] **Entraînement du modèle** : Création du modèle de prédiction de volatilité (RandomForest ou LSTM).
-* [ ] **Export des Artefacts** : Sauvegarde du modèle et des scalers au format `.pkl` ou `.joblib`.
-* [ ] **Endpoint `/predict**` : Intégration du modèle ML dans l'API FastAPI pour des prédictions en temps réel.
-
-####  Étape 3 : Orchestration & Agent IA (n8n) — **[À FAIRE ]**
-
-* [ ] **Workflow n8n** : Création du tunnel entre l'API et l'utilisateur.
-* [ ] Lancer docker faire en sorte que tout marche avec docker.
-* [ ] Attendre que Thibault fasse le docker 
-* [ ] **Système de Notification** : Automatisation de l'envoi d'alertes par e-mail en cas de forte volatilité.
-* [ ] **Human-in-the-Loop** : Mise en place des boutons de feedback dans les emails (Validation de la prédiction).
-* [ ] **Stockage Feedback** : Enregistrement des retours utilisateurs dans `prod_data.csv`.
-
-#### Étape 4 : Monitoring & MLOps Industriel — **[À FAIRE ]**
-* [ ] Dockerfile pour les utilisateurs mysql .
-* [ ] **Monitoring avec Evidently AI** : Dashboard de détection de Data Drift (comparaison `ref_data` vs `prod_data`).
-* [ ] **Trigger de Réentraînement** : Script surveillant la taille de `prod_data.csv` pour relancer `train_model.py`.
-* [ ] **Conteneurisation Docker** :
-* [x] ~~Dockerfile pour l'API FastAPI~~.
-* [x] ~~Dockerfile pour le Frontend Next.js.~~
-* [ ] Docker Compose pour orchestrer l'API, la DB, n8n et le monitoring.
-
-####  Étape 5 : Finalisation & Rapport — **[À FAIRE ]**
-
-* [ ] **Tests unitaires** sur les routes critiques de l'API.
-* [ ] **Rédaction du rapport technique** (Architecture, choix technologiques, analyse du drift).
-* [ ] **Préparation de la soutenance** (Démonstration du cycle de réentraînement automatique).
-
----
+| Catégorie | Outils |
+|---|---|
+| Frontend | React, Vite, TailwindCSS, shadcn/ui |
+| Backend ML | FastAPI, scikit-learn, RandomForest, joblib |
+| Agent IA | LangChain, OpenAI GPT-4o-mini, FAISS, ChromaDB |
+| Monitoring | Evidently AI |
+| Orchestration | n8n (workflows + emails) |
+| Base de données | MySQL 8.0 |
+| Données marché | Binance API (OHLCV BTC/ETH) |
+| Conteneurisation | Docker, Docker Compose |
